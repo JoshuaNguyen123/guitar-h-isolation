@@ -1,51 +1,71 @@
 # Guitar H Isolation
 
-A Windows desktop app that takes a song file and builds a custom Clone Hero track from it.
+Turn a song on your computer into a custom Clone Hero guitar chart.
 
-You pick an MP3, click Generate, and get a song folder you can drop into Clone Hero. The folder has isolated guitar audio plus a 5-fret guitar chart.
+You pick an MP3, click Generate, and the app makes a folder Clone Hero can play. It pulls out the guitar and builds the colored notes (green, red, yellow, blue, orange).
 
-The chart is a first draft. It is playable, but it is not as polished as a chart someone made by hand. If you want to share it, clean it up in [Moonscraper](https://github.com/fireFox1918/Moonscraper-Chart-Editor) or Editor on Fire.
+The chart is a first draft. It is playable, but it will not look as clean as a chart someone made by hand.
 
 This project is not affiliated with Guitar Hero, Harmonix, or Clone Hero.
 
-## What the output folder contains
+Only use songs you are allowed to use.
 
-| File | What it is |
-|------|------------|
-| `song.ogg` | The rest of the mix (no isolated guitar) |
-| `guitar.ogg` | Just the guitar |
-| `song.ini` | Title, artist, and other Clone Hero metadata |
-| `notes.chart` | Green / red / yellow / blue / orange notes for Expert, Hard, Medium, and Easy |
+---
 
-Clone Hero plays `song.ogg` and `guitar.ogg` together, so you hear the full band without the guitar being doubled.
+## Download the app (easiest way)
 
-## What you need
+You do not need Git.
 
-- Windows
-- Python 3.11 or newer
-- FFmpeg on your PATH
+1. Open this page: [https://github.com/JoshuaNguyen123/guitar-h-isolation](https://github.com/JoshuaNguyen123/guitar-h-isolation)
+2. Click the green **Code** button.
+3. Click **Download ZIP**.
+4. Open your **Downloads** folder.
+5. Right-click `guitar-h-isolation-main.zip` and click **Extract All**.
+6. Click **Extract**.
+7. Open the new folder named `guitar-h-isolation-main`.
 
-Install FFmpeg with:
+Leave this folder open. You will come back to it.
+
+---
+
+## One-time setup (do this once)
+
+You need two free programs: **Python** and **FFmpeg**. Then you install this app.
+
+### A. Install Python
+
+1. Open [https://www.python.org/downloads/](https://www.python.org/downloads/)
+2. Click the big yellow **Download Python** button.
+3. Run the installer.
+4. At the bottom of the first screen, turn on **Add python.exe to PATH**.
+5. Click **Install Now**.
+6. When it finishes, click **Close**.
+
+### B. Install FFmpeg
+
+1. Press the **Windows** key, type `PowerShell`, and press Enter.
+2. Copy this line, paste it, and press Enter:
 
 ```powershell
 winget install Gyan.FFmpeg
 ```
 
-Or with Chocolatey:
-
-```powershell
-choco install ffmpeg
-```
-
-Then close and reopen the terminal. Confirm it worked:
+3. If Windows asks to finish the install, click **Yes**.
+4. Close PowerShell.
+5. Open a **new** PowerShell window.
+6. Type this and press Enter:
 
 ```powershell
 ffmpeg -version
 ```
 
-## Install the app
+You should see text that starts with `ffmpeg version`. If you see an error, restart the computer and try that last command again.
 
-From the project folder:
+### C. Install Guitar H Isolation
+
+1. In the File Explorer window from the download step, click the address bar at the top.
+2. Type `powershell` and press Enter. A black or blue window opens in that folder.
+3. Copy these three lines, paste them, and press Enter:
 
 ```powershell
 python -m venv .venv
@@ -53,136 +73,131 @@ python -m venv .venv
 pip install -r requirements.txt
 ```
 
-If `pip` gets stuck installing TensorFlow (this happens a lot on OneDrive), stop it and run:
+4. Wait. The last line can take several minutes. You will see a lot of text. That is normal.
+
+**If PowerShell says scripts are disabled**, run this once, then run the three lines again:
+
+```powershell
+Set-ExecutionPolicy -Scope CurrentUser RemoteSigned
+```
+
+**If `pip` gets stuck for a long time** (especially if the folder is on OneDrive), press Ctrl+C, then paste these two lines instead:
 
 ```powershell
 pip install customtkinter demucs-onnx librosa soundfile numpy onnxruntime huggingface-hub pretty-midi resampy scipy scikit-learn soxr tqdm mir-eval
 pip install --no-deps basic-pitch
 ```
 
-The app uses the ONNX Basic Pitch model, so TensorFlow is not required.
+When the prompt comes back and there is no red error, setup is done. You can close PowerShell.
 
-## Download
+---
 
-Get the source from GitHub, then follow Install the app below.
+## How to start the app each time
+
+1. Open the `guitar-h-isolation-main` folder.
+2. Double-click `run.bat`.
+
+If a window titled **Guitar H Isolation** opens, you are ready.
+
+If `run.bat` closes right away:
+
+1. In that same folder, click the address bar, type `powershell`, and press Enter.
+2. Paste these two lines and press Enter:
 
 ```powershell
-git clone https://github.com/JoshuaNguyen123/guitar-h-isolation.git
-cd guitar-h-isolation
+.\.venv\Scripts\Activate.ps1
+python -m src.app.main
 ```
 
-You can also use **Code**, then **Download ZIP** on the GitHub page.
+---
 
-## How to use the app
+## How to make a Clone Hero song
 
-1. Open a terminal in the project folder.
-2. Activate the venv if it is not already active:
+1. In the app, click **Browse** next to **Audio file**.
+2. Pick a song file on your computer. MP3 is the usual choice. WAV, FLAC, OGG, and M4A also work.
+3. Check **Song name** and **Artist**. Change them if they look wrong.
+4. Leave **Output folder** alone unless you know Clone Hero is in portable mode.
 
-   ```powershell
-   .\.venv\Scripts\Activate.ps1
-   ```
+   The default is:
 
-3. Start the app:
+   `Documents\Clone Hero\Songs\` and then your song name
 
-   ```powershell
-   python -m src.app.main
-   ```
+5. Click **Generate**.
+6. Wait. The first song is the slowest. It can take several minutes. You will see:
 
-   After the venv exists, you can also double-click `run.bat`.
+   - Separate (pulls out the guitar)
+   - Transcribe (finds the notes)
+   - Chart (builds the colored track)
+   - Package (saves the folder)
 
-4. Click **Browse** and pick your song. MP3 is the usual choice. WAV, FLAC, OGG, and M4A work too.
-5. Check **Song name** and **Artist**. The app fills these from the filename when it can (for example `Artist - Title.mp3`).
-6. Check **Output folder**. The default is:
+7. When it says **Done**, click **Open folder**.
 
-   `Documents\Clone Hero\Songs\<Song Name>`
+You should see four files:
 
-   That is the usual Clone Hero Songs folder on Windows. Change it if your game is in portable mode.
-7. Click **Generate**.
-8. Wait for the four stages to finish: Separate, Transcribe, Chart, Package.
+- `song.ogg` (the band without the isolated guitar)
+- `guitar.ogg` (just the guitar)
+- `song.ini` (the song name and artist)
+- `notes.chart` (the notes you play)
 
-   The first song is slower because the Demucs model downloads into a local cache. A song can take several minutes on CPU.
-9. When it says Done, click **Open folder** or **Copy path**.
-
-You should see `song.ogg`, `guitar.ogg`, `song.ini`, and `notes.chart` in that folder.
+---
 
 ## How to play it in Clone Hero
 
-1. Make sure the generated folder is inside your Clone Hero Songs directory.
+1. Make sure the folder you just opened is **inside** Clone Hero's Songs folder.
 
-   - Typical install: `Documents\Clone Hero\Songs\`
-   - Portable install: `<game folder>\PlayerData\Songs\`
+   - Normal install: `Documents\Clone Hero\Songs\Your Song Name`
+   - Portable install: the game folder, then `PlayerData\Songs\Your Song Name`
+
+   The four files must stay together in that song folder.
 
 2. Open Clone Hero.
-3. Go to **Settings**, then **General**, then **Scan Songs**.
-4. Open **Quickplay** and find the song.
+3. Click **Settings**.
+4. Click **General**.
+5. Click **Scan Songs** and wait.
+6. Go back and open **Quickplay**.
+7. Find your song and start on **Easy** or **Medium**.
 
-If it does not show up, check Clone Hero's `badsongs.txt` for a missing file or a bad chart.
+If the song does not show up, open `badsongs.txt` in your Clone Hero folder. That file explains what is missing.
 
-## How to test
+---
 
-Install the extra test tools once:
+## What to expect
+
+- Songs with a clear guitar part work best.
+- Busy songs, heavy distortion, or many guitars at once will miss notes or add extras.
+- This version only makes a guitar chart. It does not chart drums, bass, or vocals.
+- You can clean up the chart later in Moonscraper if you want to share it.
+
+---
+
+## For testers and developers
+
+Fast checks (no song processing):
 
 ```powershell
 .\.venv\Scripts\Activate.ps1
 pip install -r requirements-dev.txt
-```
-
-### Fast tests (run these first)
-
-These check fret mapping and that `notes.chart` / `song.ini` text is valid. They do not download models and should finish in about a second.
-
-```powershell
 python -m pytest tests/test_fretmap.py tests/test_chart_writer.py -q
 ```
 
-You want to see all tests passed.
-
-### Full pipeline test (slow, real song)
-
-This runs the same path the app uses on a short public guitar clip in `tests/fixtures/`. It needs FFmpeg and will download models on the first run. Expect several minutes.
+Full run on one public guitar clip (slow):
 
 ```powershell
 python -m pytest tests/e2e/test_real_pipeline.py -s
 ```
 
-If it passes, look in `e2e_output\Acoustic Chords\` for a real Clone Hero folder.
-
-### Several real clips (slow)
-
-This runs the same path on four public clips: solo acoustic, solo electric, mixed band, and a short melody.
+Four public clips, then a Playwright check (slow):
 
 ```powershell
 python tests\e2e\run_clip_suite.py
 python -m pytest tests/e2e/test_playwright_clip_suite.py -q
 ```
 
-Results land in `e2e_output\clip_suite\`. Playwright opens `index.html` and checks that every clip passed with at least one Expert note.
-
-### Single-clip report (optional)
-
-```powershell
-python -m pytest tests/e2e/test_playwright_report.py -q
-```
-
-## What to expect
-
-- Clear electric or acoustic guitar parts work best.
-- Busy mixes, heavy distortion, or stacked guitars will miss notes or add extras.
-- The app can split drums, bass, and vocals internally to build the backing track. Version 1 only charts guitar.
-- Only use audio you have the right to process.
-
-## Project layout
-
-```
-src/app/          Desktop window
-src/pipeline/     Isolate guitar, find notes, write the Clone Hero folder
-tests/            Fast unit tests and optional real-song tests
-tests/fixtures/   Short CC-licensed guitar clip used by the full pipeline test
-```
+---
 
 ## Credits
 
-- [Demucs](https://github.com/facebookresearch/demucs) and [demucs-onnx](https://github.com/stemsplit/demucs-onnx) isolate the guitar.
+- [Demucs](https://github.com/facebookresearch/demucs) and [demucs-onnx](https://github.com/stemsplit/demucs-onnx) pull out the guitar.
 - [Basic Pitch](https://github.com/spotify/basic-pitch) finds the notes.
 - Test clips are listed in `tests/fixtures/CLIPS.md`.
 
