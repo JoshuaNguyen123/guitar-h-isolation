@@ -1,0 +1,4 @@
+guitar_chords.ogg / guitar_chords.mp3
+Source: https://commons.wikimedia.org/wiki/File:Guitare_accoustique_accords.ogg
+Author: Frédéric Jacquot, 2005
+License: CC BY-SA 2.5

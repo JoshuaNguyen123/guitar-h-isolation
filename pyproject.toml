@@ -1,0 +1,38 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "guitar-h-isolation"
+version = "0.1.0"
+description = "Isolate guitar from an MP3 and export a Clone Hero chart package"
+readme = "README.md"
+license = { text = "MIT" }
+requires-python = ">=3.11"
+dependencies = [
+    "customtkinter>=5.2.2",
+    "demucs-onnx>=0.3.0",
+    "basic-pitch>=0.4.0",
+    "librosa>=0.10.2",
+    "soundfile>=0.12.1",
+    "numpy>=1.26.0",
+    "onnxruntime>=1.17.0",
+    "mir-eval>=0.7",
+]
+
+[project.optional-dependencies]
+dev = ["pytest>=8.0"]
+
+[project.scripts]
+guitar-h = "src.app.main:main"
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["src*"]
+
+[tool.pytest.ini_options]
+pythonpath = ["."]
+testpaths = ["tests"]
+markers = [
+    "e2e: real isolate/transcribe/package run (slow, needs models)",
+]
