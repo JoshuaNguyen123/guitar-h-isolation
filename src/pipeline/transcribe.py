@@ -10,12 +10,15 @@ MAX_GUITAR_HZ = 1318.5
 
 
 def transcribe_guitar(guitar_wav: Path) -> list[NoteEvent]:
-    from basic_pitch import ICASSP_2022_MODEL_PATH
+    from basic_pitch import FilenameSuffix, build_icassp_2022_model_path
     from basic_pitch.inference import predict
 
+    # Prefer ONNX even if TensorFlow is installed. TF is the default on
+    # Python 3.11 and makes Transcribe look hung on long songs.
+    model_path = build_icassp_2022_model_path(FilenameSuffix.onnx)
     _model_output, _midi, raw_events = predict(
         str(guitar_wav),
-        model_or_model_path=ICASSP_2022_MODEL_PATH,
+        model_or_model_path=model_path,
         onset_threshold=0.5,
         frame_threshold=0.3,
         minimum_frequency=MIN_GUITAR_HZ,

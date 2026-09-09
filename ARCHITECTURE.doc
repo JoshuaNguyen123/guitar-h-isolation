@@ -1,0 +1,187 @@
+<html xmlns:o="urn:schemas-microsoft-com:office:office"
+      xmlns:w="urn:schemas-microsoft-com:office:word"
+      xmlns="http://www.w3.org/TR/REC-html40">
+<head>
+<meta charset="utf-8">
+<title>Guitar H Isolation: architecture and honesty</title>
+<!--[if gte mso 9]>
+<xml>
+<w:WordDocument>
+<w:View>Print</w:View>
+<w:Zoom>100</w:Zoom>
+</w:WordDocument>
+</xml>
+<![endif]-->
+<style>
+  body { font-family: Calibri, Segoe UI, sans-serif; font-size: 12pt; line-height: 1.45; max-width: 800px; color: #1c1914; }
+  h1 { font-size: 22pt; }
+  h2 { font-size: 16pt; margin-top: 22pt; }
+  h3 { font-size: 13pt; margin-top: 16pt; }
+  table { border-collapse: collapse; width: 100%; margin: 12pt 0; }
+  th, td { border: 1px solid #888; padding: 6pt 8pt; text-align: left; vertical-align: top; }
+  th { background: #f3ead2; }
+  code, pre { font-family: Consolas, "Courier New", monospace; }
+  pre { background: #f6f3ea; padding: 10pt; white-space: pre-wrap; }
+  .note { background: #fff6d6; padding: 10pt 12pt; border-left: 4pt solid #c4892a; }
+</style>
+</head>
+<body>
+
+<h1>Guitar H Isolation: architecture and honesty</h1>
+<p>This document explains what the app actually does, what it does not do, and why some steps take a long time. It is written for players and for anyone who wants to audit the pipeline.</p>
+<p class="note"><b>Be transparent:</b> this project is not affiliated with Guitar Hero, Harmonix, or Clone Hero. Charts are machine drafts. They are playable. They are not community-polish charts. Only process audio you have the right to use.</p>
+<p>The same text lives in <code>ARCHITECTURE.md</code> for GitHub. This Word file is the same document for opening offline.</p>
+
+<h2>What you get</h2>
+<p>You pick a local audio file. The app writes one Clone Hero song folder with four files:</p>
+<table>
+  <tr><th>File</th><th>What it is</th></tr>
+  <tr><td><code>song.ogg</code></td><td>The mix <b>minus guitar</b>: drums + bass + vocals + piano + other</td></tr>
+  <tr><td><code>guitar.ogg</code></td><td>The isolated guitar stem</td></tr>
+  <tr><td><code>song.ini</code></td><td>Name, artist, charter, length</td></tr>
+  <tr><td><code>notes.chart</code></td><td>5-fret guitar notes on Expert, Hard, Medium, and Easy</td></tr>
+</table>
+<p>Clone Hero plays <code>song.ogg</code> as the backing track and <code>guitar.ogg</code> as the guitar stem. Together they sound like the full mix <b>without doubling the guitar</b>. That is intentional. If <code>song.ogg</code> were the original mix, you would hear two guitars.</p>
+<p>This version charts <b>guitar only</b>. It does not make drum, bass, or vocal charts.</p>
+
+<h2>Big picture</h2>
+<p>Five layers. The guitar path is gold. The backing / tempo path is blue-gray. They meet when the chart is written.</p>
+<p><img src="architecture-diagram.svg" width="680" alt="Architecture diagram: desktop UI, Demucs split, Basic Pitch, 5-fret mapping, Clone Hero folder"></p>
+<p>If the picture does not open in Word, use <code>architecture-diagram.svg</code> in this same folder, or open <code>ARCHITECTURE.md</code> on GitHub.</p>
+<p>Two layers run this:</p>
+<ol>
+  <li><b>Desktop UI</b> (<code>src/app</code>) — CustomTkinter window. Browse, Generate, progress, open folder.</li>
+  <li><b>Pipeline</b> (<code>src/pipeline</code>) — the work above. The UI starts it on a background thread so the window does not freeze.</li>
+</ol>
+<p><code>python -m src.app.main</code> or <code>run.bat</code> starts the UI. <code>--demo</code> prefills the public acoustic clip and starts Generate.</p>
+
+<h2>Why the first run is slow</h2>
+<p>Two different waits get mixed together. They are not the same.</p>
+
+<h3>1. Hugging Face model download (first time only)</h3>
+<p>The guitar splitter is an ONNX model hosted on Hugging Face:</p>
+<ul>
+  <li>Repo: <code>StemSplitio/htdemucs-6s-onnx</code></li>
+  <li>File: <code>htdemucs_6s_fp16weights.onnx</code> (smaller) or <code>htdemucs_6s.onnx</code> if that one is already cached</li>
+  <li>Size: about 75 to 150 MB</li>
+</ul>
+<p>Those “HF token chunks” are <b>this model arriving over the network</b>, not your song streaming. After the file is in the local Hugging Face cache, later songs skip this.</p>
+<p>The app turns on faster Xet downloads, prefetches the model when the window opens, and reuses whatever variant is already on disk. Basic Pitch’s note model ships inside the Python package. It is not the Hugging Face chunk download you see at startup.</p>
+
+<h3>2. Isolation compute (every song)</h3>
+<p>Demucs then runs the model on your audio in about <b>7.8 second chunks</b>. A 7 minute song is many ONNX passes. That uses a lot of CPU and RAM (several GB). The progress bar can sit on “Isolating guitar” for 10+ minutes. That is work, not a freeze. Transcription and chart writing after that are usually much faster.</p>
+
+<h2>Stage by stage</h2>
+
+<h3>Checking tools</h3>
+<p>Looks for <code>ffmpeg</code> on PATH. Needed to decode the input and to encode OGG. If it is missing, the app stops with an install hint (<code>winget install Gyan.FFmpeg</code>).</p>
+
+<h3>Downloading model</h3>
+<p>Only if the Demucs ONNX file is not already cached.</p>
+
+<h3>Separate</h3>
+<p>Code: <code>src/pipeline/separate.py</code></p>
+<ol>
+  <li>FFmpeg decodes the input to a stereo 44.1 kHz WAV in a temp folder.</li>
+  <li><code>demucs-onnx</code> runs <code>htdemucs_6s</code> and returns six stems: drums, bass, other, vocals, guitar, piano.</li>
+  <li><b>Guitar stem</b> is saved as <code>guitar.wav</code>.</li>
+  <li><b>Backing</b> is the sum of drums + bass + vocals + piano + other. Guitar is left out on purpose.</li>
+  <li>Peaks are normalized if they clip above 1.0.</li>
+</ol>
+<p><b>Honesty about isolation:</b> this is source separation, not a studio multitrack. Bleed is normal. Two guitars, heavy distortion, or a buried part will confuse the model. We do not claim a clean studio guitar take.</p>
+
+<h3>Transcribe</h3>
+<p>Code: <code>src/pipeline/transcribe.py</code>. Spotify Basic Pitch (ICASSP 2022 ONNX) listens to the guitar stem only (about E2 to E6). Output is note events: start, end, MIDI pitch, velocity.</p>
+<p><b>Honesty about transcription:</b> Basic Pitch estimates pitch from audio. It is not tablature and it does not know which string you used. Fast runs, bends, slides, harmonics, and chords are often wrong. If it finds zero notes, Generate fails with a clear error.</p>
+
+<h3>Detecting tempo</h3>
+<p>Code: <code>src/pipeline/tempo.py</code>. <code>librosa.beat.beat_track</code> on the backing track. BPM is folded into 70–200. If detection fails, it uses 120.</p>
+<p><b>Honesty about tempo:</b> one constant BPM is written into the chart. There is no tempo map for ritardandos or mid-song meter changes. A wrong BPM shifts every note in time.</p>
+
+<h3>Chart</h3>
+<p>Code: <code>src/pipeline/fretmap.py</code>. This is the most important honesty section.</p>
+<p>Clone Hero guitar is <b>five buttons</b>, not a real fretboard. The app must squash every MIDI pitch onto green / red / yellow / blue / orange.</p>
+<p>How Expert is built:</p>
+<ol>
+  <li>Guess a tonic (key center) with a Krumhansl–Schmuckler major-key profile.</li>
+  <li>Map each pitch class relative to that tonic onto frets 0–4.</li>
+  <li>Notes that start within 40 ms are treated as a chord, capped at 3 frets.</li>
+  <li>Times become ticks at resolution 192.</li>
+  <li>Hits snap toward 16th notes, or 32nds if they are not close enough to a 16th.</li>
+  <li>Short sustains become tap-length notes. Overlaps on the same fret are clamped.</li>
+</ol>
+<table>
+  <tr><th>Difficulty</th><th>Max chord</th><th>Minimum spacing</th></tr>
+  <tr><td>Expert</td><td>3</td><td>none beyond snapping</td></tr>
+  <tr><td>Hard</td><td>2</td><td>16th note</td></tr>
+  <tr><td>Medium</td><td>2</td><td>8th note</td></tr>
+  <tr><td>Easy</td><td>1</td><td>quarter note</td></tr>
+</table>
+<p>Harder / easier tracks are thinned copies of Expert, not re-transcribed.</p>
+<p><b>Honesty about charts:</b> this is not Guitar Hero authoring and not real guitar tab. Lane colors come from pitch-class bands, not fingering. Hopos, star power, force flags, and open notes are not written. Time signature is hardcoded as 4/4. Offset is 0. Expect extra notes, missing notes, and awkward chords on busy songs. The charter name written into the files is <code>Guitar H Isolation</code>.</p>
+
+<h3>Package</h3>
+<p>Code: <code>src/pipeline/package.py</code>. FFmpeg encodes the two WAVs to Vorbis OGG. Then it writes <code>song.ini</code> and <code>notes.chart</code>. Temp files are deleted.</p>
+<p><code>notes.chart</code> points at <code>MusicStream = song.ogg</code> and <code>GuitarStream = guitar.ogg</code>.</p>
+
+<h2>User interface</h2>
+<p><code>src/app/ui.py</code> is a dark CustomTkinter window. While Generate runs, the button says the window should stay open, a banner says the job is still alive, and status shows the stage, a percent, and elapsed time. The bar pulses so a long Separate stage does not look frozen.</p>
+<p>The window also prefetches the Demucs model in the background. Generate work runs on a daemon thread. Closing the window kills that work.</p>
+
+<h2>Folder map</h2>
+<pre>
+src/app/main.py           start the window
+src/app/ui.py             browse, progress, prefetch
+src/pipeline/run.py       stage order
+src/pipeline/audio.py     FFmpeg decode / OGG encode
+src/pipeline/hf.py        Hugging Face cache and faster downloads
+src/pipeline/separate.py  Demucs 6-stem split and backing mix
+src/pipeline/transcribe.py Basic Pitch
+src/pipeline/tempo.py     BPM
+src/pipeline/fretmap.py   MIDI to 5-fret + difficulty thinning
+src/pipeline/chart_writer.py text .chart
+src/pipeline/package.py   song folder
+src/pipeline/types.py     shared data shapes
+src/pipeline/util.py      filename / default Songs path / ffmpeg check
+</pre>
+<p>Default output: <code>Documents\Clone Hero\Songs\&lt;Song Name&gt;</code></p>
+
+<h2>What this app does not do</h2>
+<ul>
+  <li>It does not download songs from the internet.</li>
+  <li>It does not remove copyright, watermarks, or DRM.</li>
+  <li>It does not produce official Guitar Hero or Clone Hero content.</li>
+  <li>It does not chart drums, bass, keys, or vocals.</li>
+  <li>It does not upload to Chorus, Clone Hero, or any chart site.</li>
+  <li>It does not guarantee a shareable community chart. Use Moonscraper if you want to clean one up.</li>
+</ul>
+
+<h2>Models and licenses</h2>
+<table>
+  <tr><th>Piece</th><th>Role</th><th>Where it comes from</th></tr>
+  <tr><td>FFmpeg</td><td>decode / encode</td><td>your machine PATH</td></tr>
+  <tr><td>demucs-onnx + htdemucs_6s</td><td>6-stem split including guitar</td><td>Hugging Face StemSplitio/htdemucs-6s-onnx (Meta Demucs family)</td></tr>
+  <tr><td>onnxruntime</td><td>run the ONNX graphs</td><td>pip</td></tr>
+  <tr><td>Basic Pitch</td><td>audio to MIDI-like notes</td><td>Spotify model bundled with the basic-pitch package</td></tr>
+  <tr><td>librosa</td><td>tempo</td><td>pip</td></tr>
+  <tr><td>CustomTkinter</td><td>window</td><td>pip</td></tr>
+</table>
+<p>The app itself is MIT. Third-party models keep their own licenses. Test audio used in this repo is listed in <code>tests/fixtures/CLIPS.md</code>. Those clips are the only songs this project redistributes.</p>
+
+<h2>How to verify a result</h2>
+<ol>
+  <li>Open the output folder. You should see exactly those four files.</li>
+  <li>Play <code>guitar.ogg</code>. You should mostly hear guitar.</li>
+  <li>Play <code>song.ogg</code>. You should hear the rest of the band, not a doubled guitar.</li>
+  <li>Open <code>notes.chart</code> in a text editor. You should see Expert, Hard, Medium, and Easy sections.</li>
+  <li>Put the folder inside Clone Hero Songs, then Settings → General → Scan Songs.</li>
+  <li>If the song is missing, read <code>badsongs.txt</code> in the Clone Hero folder.</li>
+</ol>
+
+<h2>Honest quality bar</h2>
+<p>Proven in this repo on short public-domain / Creative Commons clips: the pipeline writes real OGGs and a chart with notes on all four difficulties.</p>
+<p>Not proven, and not claimed: launching Clone Hero for you, matching a human charter’s note choice, working well on every commercial mix, or beat-perfect sync on every song.</p>
+<p>If a chart feels wrong, the usual causes are isolation bleed, Basic Pitch errors, or a bad BPM, in that order.</p>
+
+</body>
+</html>

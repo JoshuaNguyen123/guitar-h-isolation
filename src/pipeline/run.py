@@ -42,7 +42,6 @@ def run_pipeline(
     configure_fast_hf()
     ensure_ffmpeg()
     output_dir = output_dir.parent / sanitize_folder_name(output_dir.name)
-    output_dir.mkdir(parents=True, exist_ok=True)
 
     work_dir = Path(tempfile.mkdtemp(prefix="guitar_h_"))
     try:

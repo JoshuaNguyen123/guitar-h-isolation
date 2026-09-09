@@ -28,86 +28,21 @@ Leave this folder open. You will come back to it.
 
 ---
 
-## One-time setup (do this once)
+## One-time setup (one step)
 
-You need two free programs: **Python** and **FFmpeg**. Then you install this app.
-
-### A. Install Python
+You need **Python 3** on this computer first. If you do not have it:
 
 1. Open [https://www.python.org/downloads/](https://www.python.org/downloads/)
 2. Click the big yellow **Download Python** button.
 3. Run the installer.
 4. At the bottom of the first screen, turn on **Add python.exe to PATH**.
 5. Click **Install Now**.
-6. When it finishes, click **Close**.
 
-### B. Install FFmpeg
+Then, in the `guitar-h-isolation-main` folder, **double-click `run.bat`**.
 
-1. Press the **Windows** key, type `PowerShell`, and press Enter.
-2. Copy this line, paste it, and press Enter:
+The first launch installs the app and tries to install FFmpeg if it is missing. That can take several minutes. After that, the Guitar H Isolation window opens. Later launches just open the app.
 
-```powershell
-winget install Gyan.FFmpeg
-```
-
-3. If Windows asks to finish the install, click **Yes**.
-4. Close PowerShell.
-5. Open a **new** PowerShell window.
-6. Type this and press Enter:
-
-```powershell
-ffmpeg -version
-```
-
-You should see text that starts with `ffmpeg version`. If you see an error, restart the computer and try that last command again.
-
-### C. Install Guitar H Isolation
-
-1. In the File Explorer window from the download step, click the address bar at the top.
-2. Type `powershell` and press Enter. A black or blue window opens in that folder.
-3. Copy these three lines, paste them, and press Enter:
-
-```powershell
-python -m venv .venv
-.\.venv\Scripts\Activate.ps1
-pip install -r requirements.txt
-```
-
-4. Wait. The last line can take several minutes. You will see a lot of text. That is normal.
-
-**If PowerShell says scripts are disabled**, run this once, then run the three lines again:
-
-```powershell
-Set-ExecutionPolicy -Scope CurrentUser RemoteSigned
-```
-
-**If `pip` gets stuck for a long time** (especially if the folder is on OneDrive), press Ctrl+C, then paste these two lines instead:
-
-```powershell
-pip install customtkinter demucs-onnx librosa soundfile numpy onnxruntime huggingface-hub pretty-midi resampy scipy scikit-learn soxr tqdm mir-eval
-pip install --no-deps basic-pitch
-```
-
-When the prompt comes back and there is no red error, setup is done. You can close PowerShell.
-
----
-
-## How to start the app each time
-
-1. Open the `guitar-h-isolation-main` folder.
-2. Double-click `run.bat`.
-
-If a window titled **Guitar H Isolation** opens, you are ready.
-
-If `run.bat` closes right away:
-
-1. In that same folder, click the address bar, type `powershell`, and press Enter.
-2. Paste these two lines and press Enter:
-
-```powershell
-.\.venv\Scripts\Activate.ps1
-python -m src.app.main
-```
+If the window never opens, double-click `install.bat`, wait until it says **Install OK**, then double-click `run.bat` again.
 
 ---
 
@@ -167,6 +102,21 @@ If the song does not show up, open `badsongs.txt` in your Clone Hero folder. Tha
 - Busy songs, heavy distortion, or many guitars at once will miss notes or add extras.
 - This version only makes a guitar chart. It does not chart drums, bass, or vocals.
 - You can clean up the chart later in Moonscraper if you want to share it.
+
+## How the app actually works
+
+The full write-up is in [ARCHITECTURE.md](ARCHITECTURE.md), including the [architecture diagram](architecture-diagram.svg). The same document is also [ARCHITECTURE.doc](ARCHITECTURE.doc) if you want to open it in Word.
+
+Short version:
+
+1. FFmpeg turns your file into a WAV.
+2. Demucs (`htdemucs_6s`) splits the mix into six stems. The first run downloads that model from Hugging Face (that is the slow “chunk” download). Later songs reuse the cached file.
+3. `song.ogg` is the band **without** guitar. `guitar.ogg` is the isolated guitar. Clone Hero plays both so the guitar is not doubled.
+4. Basic Pitch guesses notes from the guitar stem. That is pitch detection, not real guitar tab.
+5. Those notes are squashed onto five Clone Hero frets, then thinned for Hard, Medium, and Easy.
+6. Tempo is one BPM number for the whole song.
+
+The chart is a machine draft. It is not official Guitar Hero or Clone Hero content.
 
 ---
 
