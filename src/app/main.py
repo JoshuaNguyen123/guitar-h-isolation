@@ -1,5 +1,9 @@
 import argparse
 
+from src.pipeline.hf import configure_fast_hf
+
+configure_fast_hf()
+
 from src.app.ui import run_app
 
 

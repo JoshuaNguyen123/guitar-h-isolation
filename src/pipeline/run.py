@@ -8,6 +8,7 @@ from pathlib import Path
 import soundfile as sf
 
 from src.pipeline.fretmap import map_difficulties
+from src.pipeline.hf import configure_fast_hf, model_is_cached
 from src.pipeline.package import package_song
 from src.pipeline.separate import isolate_guitar
 from src.pipeline.tempo import estimate_tempo
@@ -38,12 +39,15 @@ def run_pipeline(
         raise FileNotFoundError(f"Audio file not found: {input_path}")
 
     report("Checking tools", 0.0)
+    configure_fast_hf()
     ensure_ffmpeg()
     output_dir = output_dir.parent / sanitize_folder_name(output_dir.name)
     output_dir.mkdir(parents=True, exist_ok=True)
 
     work_dir = Path(tempfile.mkdtemp(prefix="guitar_h_"))
     try:
+        if not model_is_cached():
+            report("Downloading model", 0.04)
         report("Separate", 0.08)
         separation = isolate_guitar(input_path, work_dir)
 

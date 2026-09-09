@@ -17,6 +17,18 @@ AUDIO_TYPES = [
     ("All files", "*.*"),
 ]
 
+STAGE_COPY = {
+    "Checking tools": "Checking FFmpeg and setup",
+    "Starting": "Starting",
+    "Downloading model": "Downloading the guitar model from Hugging Face",
+    "Separate": "Isolating guitar from the mix",
+    "Transcribe": "Hearing the guitar notes",
+    "Detecting tempo": "Finding the tempo",
+    "Chart": "Building the Clone Hero chart",
+    "Package": "Writing the song folder",
+    "Done": "Done",
+}
+
 
 class App(ctk.CTk):
     def __init__(self) -> None:
@@ -30,12 +42,19 @@ class App(ctk.CTk):
         self.configure(fg_color="#1c1914")
 
         self._busy = False
+        self._prefetching = False
         self._output_path: Path | None = None
         self._events: queue.Queue[tuple] = queue.Queue()
         self._user_set_output = False
+        self._elapsed_s = 0
+        self._pulse = 0
+        self._stage_name = "Ready"
+        self._stage_fraction = 0.0
 
         self._build()
         self.after(80, self._poll_events)
+        self.after(1000, self._tick_wait)
+        self.after(250, self._start_prefetch)
 
     def start_demo(self) -> None:
         root = Path(__file__).resolve().parents[2]
@@ -137,20 +156,29 @@ class App(ctk.CTk):
         )
         self.generate_btn.pack(fill="x", padx=18, pady=(4, 12))
 
+        self.wait_banner = ctk.CTkLabel(
+            body,
+            text="Ready. Pick a song and click Generate.",
+            font=ctk.CTkFont(family="Segoe UI", size=16, weight="bold"),
+            text_color="#e8c36a",
+            wraplength=620,
+            justify="left",
+        )
+        self.wait_banner.pack(anchor="w", padx=18, pady=(4, 0))
         self.stage_var = tk.StringVar(value="Ready")
         ctk.CTkLabel(
             body,
             textvariable=self.stage_var,
             font=ctk.CTkFont(family="Segoe UI", size=13),
             text_color="#c4b8a0",
-        ).pack(anchor="w", padx=18)
+        ).pack(anchor="w", padx=18, pady=(4, 0))
         self.progress = ctk.CTkProgressBar(
             body,
-            height=10,
+            height=22,
             progress_color="#e8c36a",
             fg_color="#3a3428",
         )
-        self.progress.pack(fill="x", padx=18, pady=(6, 12))
+        self.progress.pack(fill="x", padx=18, pady=(8, 12))
         self.progress.set(0)
 
         self.log = ctk.CTkTextbox(
@@ -246,14 +274,22 @@ class App(ctk.CTk):
             self.name_var.set(name)
 
         self._busy = True
+        self._elapsed_s = 0
+        self._pulse = 0
+        self._stage_name = "Starting"
+        self._stage_fraction = 0.02
         self._output_path = None
-        self.generate_btn.configure(state="disabled")
+        self.generate_btn.configure(
+            state="disabled",
+            text="Working... do not close this window",
+            fg_color="#6b5420",
+        )
         self.open_btn.configure(state="disabled")
         self.copy_btn.configure(state="disabled")
         self.copy_hint.configure(text="")
-        self.progress.set(0)
-        self.stage_var.set("Starting…")
-        self._log(f"Generating chart for {name}…")
+        self.progress.set(0.02)
+        self._set_wait_text("Starting", 0.02)
+        self._log(f"Generating chart for {name}. This can take several minutes.")
 
         thread = threading.Thread(
             target=self._worker,
@@ -279,9 +315,12 @@ class App(ctk.CTk):
                 kind = item[0]
                 if kind == "progress":
                     _kind, stage, fraction = item
-                    self.stage_var.set(stage)
-                    self.progress.set(max(0.0, min(1.0, float(fraction))))
-                    self._log(f"{stage} ({int(float(fraction) * 100)}%)")
+                    self._stage_name = stage
+                    self._stage_fraction = max(0.0, min(1.0, float(fraction)))
+                    self._set_wait_text(stage, self._stage_fraction)
+                    self._log(f"{self._friendly_stage(stage)} ({int(self._stage_fraction * 100)}%)")
+                elif kind == "prefetch":
+                    self._on_prefetch(item[1])
                 elif kind == "done":
                     output: Path = item[1]
                     self._finish_ok(output)
@@ -291,20 +330,102 @@ class App(ctk.CTk):
             pass
         self.after(80, self._poll_events)
 
+    def _start_prefetch(self) -> None:
+        self._prefetching = True
+        self.wait_banner.configure(
+            text="Preparing the guitar model in the background. You can pick a song now."
+        )
+        self._log("Checking Hugging Face cache / downloading the guitar model if needed.")
+        thread = threading.Thread(target=self._prefetch_worker, daemon=True)
+        thread.start()
+
+    def _prefetch_worker(self) -> None:
+        from src.pipeline.hf import prefetch_separator_model
+
+        try:
+            status = prefetch_separator_model()
+            self._events.put(("prefetch", status))
+        except Exception as exc:
+            self._events.put(("prefetch", f"error:{exc}"))
+
+    def _on_prefetch(self, status: str) -> None:
+        self._prefetching = False
+        if self._busy:
+            return
+        if status == "cached":
+            self.wait_banner.configure(text="Ready. Guitar model is already on disk.")
+            self._log("Guitar model is cached. Generate will skip the Hugging Face download.")
+        elif status == "downloaded":
+            self.wait_banner.configure(
+                text="Ready. Guitar model finished downloading. Generate will be faster now."
+            )
+            self._log("Finished downloading the guitar model. Later songs skip this step.")
+        elif status.startswith("error:"):
+            self.wait_banner.configure(
+                text="Ready. The model will download when you click Generate."
+            )
+            self._log(f"Background model download did not finish: {status[6:]}")
+
+    def _friendly_stage(self, stage: str) -> str:
+        return STAGE_COPY.get(stage, stage)
+
+    def _set_wait_text(self, stage: str, fraction: float) -> None:
+        friendly = self._friendly_stage(stage)
+        minutes, seconds = divmod(self._elapsed_s, 60)
+        clock = f"{minutes}:{seconds:02d}"
+        if self._busy:
+            if stage == "Downloading model" or (
+                self._prefetching and stage in ("Starting", "Separate")
+            ):
+                self.wait_banner.configure(
+                    text="Downloading the guitar model. This is one-time. Later songs reuse it."
+                )
+            else:
+                self.wait_banner.configure(
+                    text="Still working. Long songs can take 10+ minutes. Do not close this window."
+                )
+            self.stage_var.set(
+                f"{friendly}  ·  {int(fraction * 100)}%  ·  running {clock}"
+            )
+        else:
+            self.wait_banner.configure(text="Ready. Pick a song and click Generate.")
+            self.stage_var.set(friendly)
+        self.progress.set(max(0.0, min(1.0, fraction)))
+
+    def _tick_wait(self) -> None:
+        if self._busy:
+            self._elapsed_s += 1
+            self._pulse = (self._pulse + 1) % 16
+            pulse = (self._pulse / 16.0) * 0.07
+            shown = min(0.97, self._stage_fraction + pulse)
+            self._set_wait_text(self._stage_name, shown)
+        self.after(1000, self._tick_wait)
+
+    def _reset_generate_btn(self) -> None:
+        self.generate_btn.configure(
+            state="normal",
+            text="Generate",
+            fg_color="#c4892a",
+        )
+
     def _finish_ok(self, output: Path) -> None:
         self._busy = False
         self._output_path = output
-        self.generate_btn.configure(state="normal")
+        self._stage_name = "Done"
+        self._stage_fraction = 1.0
+        self._reset_generate_btn()
         self.open_btn.configure(state="normal")
         self.copy_btn.configure(state="normal")
-        self.stage_var.set("Done")
+        self.wait_banner.configure(text="Finished. Your Clone Hero folder is ready.")
+        self.stage_var.set(f"Done  ·  took {self._elapsed_s // 60}:{self._elapsed_s % 60:02d}")
         self.progress.set(1)
         self._log(f"Wrote Clone Hero folder:\n{output}")
         self._log("Copy that folder into Clone Hero Songs, then Scan Songs.")
 
     def _finish_error(self, message: str) -> None:
         self._busy = False
-        self.generate_btn.configure(state="normal")
+        self._reset_generate_btn()
+        self.wait_banner.configure(text="Something went wrong. Check the log below.")
         self.stage_var.set("Failed")
         self._log(f"Error: {message}")
         messagebox.showerror("Generate failed", message)

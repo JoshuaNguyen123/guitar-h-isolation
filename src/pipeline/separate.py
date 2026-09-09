@@ -7,6 +7,7 @@ import numpy as np
 import soundfile as sf
 
 from src.pipeline.audio import decode_to_wav
+from src.pipeline.hf import configure_fast_hf, preferred_precision
 
 
 BACKING_STEMS = ("drums", "bass", "vocals", "piano", "other")
@@ -32,11 +33,13 @@ def isolate_guitar(input_path: Path, work_dir: Path) -> SeparationResult:
     mix_wav = work_dir / "mix.wav"
     decode_to_wav(input_path, mix_wav)
 
+    configure_fast_hf()
     separate = _import_separate()
     stems = separate(
         str(mix_wav),
         output_dir=None,
         model="htdemucs_6s",
+        precision=preferred_precision(),
         progress=True,
     )
     if "guitar" not in stems:

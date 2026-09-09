@@ -5,4 +5,5 @@ librosa>=0.10.2
 soundfile>=0.12.1
 numpy>=1.26.0
 onnxruntime>=1.17.0
+huggingface-hub>=0.32.0
 mir-eval>=0.7
