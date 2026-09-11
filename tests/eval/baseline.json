@@ -1,0 +1,158 @@
+{
+  "generated_at": "2026-09-11T00:43:03.642134+00:00",
+  "postfilter_density": {
+    "transcription_legacy_vs_truth": {
+      "precision": 0.30434782608695654,
+      "recall": 1.0,
+      "f_measure": 0.4666666666666667,
+      "ref_notes": 7,
+      "est_notes": 23
+    },
+    "transcription_filtered_vs_truth": {
+      "precision": 0.4666666666666667,
+      "recall": 1.0,
+      "f_measure": 0.6363636363636364,
+      "ref_notes": 7,
+      "est_notes": 15
+    },
+    "density_legacy_expert": {
+      "duration_s": 4.1,
+      "expert_notes": 23,
+      "hard_notes": 23,
+      "expert_nps": 5.609756097560976,
+      "hard_nps": 5.609756097560976,
+      "expert_unique_ticks": 15
+    },
+    "density_new_expert": {
+      "duration_s": 4.1,
+      "expert_notes": 15,
+      "hard_notes": 15,
+      "expert_nps": 3.658536585365854,
+      "hard_nps": 3.658536585365854,
+      "expert_unique_ticks": 15
+    },
+    "legacy_est_notes": 23,
+    "filtered_est_notes": 15,
+    "truth_notes": 7
+  },
+  "bleed_cleanup": {
+    "bleed_mix_before": 0.2783391682214467,
+    "bleed_mix_after_clean": 0.08484137799954419,
+    "bleed_mix_after_subtract": 0.015309647239421253,
+    "bleed_mix_after": 0.015309647239421253,
+    "bleed_reduction_pct": 94.49964324559565,
+    "clean_stem_proxy_before": 0.0010358936983517419,
+    "clean_stem_proxy_after": 0.0008242670797610347
+  },
+  "basic_pitch": {
+    "clean_melody.wav": {
+      "ok": true,
+      "precision": 1.0,
+      "recall": 1.0,
+      "f_measure": 1.0,
+      "ref_notes": 7,
+      "est_notes": 7,
+      "legacy": {
+        "precision": 1.0,
+        "recall": 1.0,
+        "f_measure": 1.0,
+        "ref_notes": 7,
+        "est_notes": 7
+      },
+      "thresholds": {
+        "onset": 0.58,
+        "frame": 0.38,
+        "min_velocity": 0.35
+      }
+    },
+    "distorted_melody.wav": {
+      "ok": true,
+      "precision": 1.0,
+      "recall": 1.0,
+      "f_measure": 1.0,
+      "ref_notes": 7,
+      "est_notes": 7,
+      "legacy": {
+        "precision": 1.0,
+        "recall": 1.0,
+        "f_measure": 1.0,
+        "ref_notes": 7,
+        "est_notes": 7
+      },
+      "thresholds": {
+        "onset": 0.58,
+        "frame": 0.38,
+        "min_velocity": 0.35
+      }
+    },
+    "distorted_bleed_melody.wav": {
+      "ok": true,
+      "precision": 1.0,
+      "recall": 1.0,
+      "f_measure": 1.0,
+      "ref_notes": 7,
+      "est_notes": 7,
+      "legacy": {
+        "precision": 1.0,
+        "recall": 1.0,
+        "f_measure": 1.0,
+        "ref_notes": 7,
+        "est_notes": 7
+      },
+      "thresholds": {
+        "onset": 0.58,
+        "frame": 0.38,
+        "min_velocity": 0.35
+      }
+    },
+    "band_mix.wav": {
+      "ok": true,
+      "precision": 0.7,
+      "recall": 1.0,
+      "f_measure": 0.8235294117647058,
+      "ref_notes": 7,
+      "est_notes": 10,
+      "legacy": {
+        "precision": 0.5,
+        "recall": 1.0,
+        "f_measure": 0.6666666666666666,
+        "ref_notes": 7,
+        "est_notes": 14
+      },
+      "thresholds": {
+        "onset": 0.58,
+        "frame": 0.38,
+        "min_velocity": 0.35
+      }
+    }
+  },
+  "labeled_clips": {
+    "electric_lick": {
+      "ok": true,
+      "precision": 0.5789473684210527,
+      "recall": 0.6470588235294118,
+      "f_measure": 0.6111111111111113,
+      "ref_notes": 17,
+      "est_notes": 19,
+      "label_notes": 17
+    },
+    "acoustic_chords": {
+      "ok": true,
+      "precision": 0.875,
+      "recall": 0.8198198198198198,
+      "f_measure": 0.8465116279069766,
+      "ref_notes": 111,
+      "est_notes": 104,
+      "label_notes": 111
+    },
+    "acoustic_shuffle": {
+      "ok": true,
+      "precision": 0.7413793103448276,
+      "recall": 0.7678571428571429,
+      "f_measure": 0.7543859649122806,
+      "ref_notes": 112,
+      "est_notes": 116,
+      "label_notes": 112
+    }
+  }
+}

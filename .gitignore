@@ -21,4 +21,5 @@ huggingface/
 !tests/fixtures/*.mp3
 !tests/fixtures/*.wav
 !tests/fixtures/*.txt
+!tests/fixtures/eval/**
 tests/fixtures/_*

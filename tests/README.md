@@ -2,11 +2,19 @@
 
 ## Unit
 
-`test_fretmap.py` and `test_chart_writer.py` do not download models.
+`test_fretmap.py`, `test_chart_writer.py`, and `tests/eval/test_eval_unit.py` do not download Demucs. The eval unit tests do need `numpy`, `scipy`, `soundfile`, `mir-eval`, and `librosa`.
 
 ```powershell
-python -m pytest tests/test_fretmap.py tests/test_chart_writer.py -q
+python -m pytest tests/test_fretmap.py tests/test_chart_writer.py tests/eval/test_eval_unit.py -q
 ```
+
+## Accuracy baselines
+
+```powershell
+python -m tests.eval.run_baseline
+```
+
+Writes `tests/eval/BASELINE.md` and `tests/eval/baseline.json`. Synthetic fixtures are under `tests/fixtures/eval/`. Labeled CC clips are `tests/fixtures/eval/labels/*.json` (thinned Basic Pitch drafts of the public fixtures).
 
 ## End-to-end
 

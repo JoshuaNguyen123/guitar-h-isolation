@@ -18,6 +18,7 @@ dependencies = [
     "numpy>=1.26.0",
     "onnxruntime>=1.17.0",
     "mir-eval>=0.7",
+    "scipy>=1.11.0",
 ]
 
 [project.optional-dependencies]

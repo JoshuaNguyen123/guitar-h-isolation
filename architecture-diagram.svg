@@ -2,9 +2,10 @@
   <title id="title">Guitar H Isolation architecture</title>
   <desc id="desc">
     Desktop UI starts a worker thread. FFmpeg decodes the file. Demucs splits six stems
-    using a Hugging Face ONNX model. Guitar goes to Basic Pitch. Backing goes to tempo
-    detection. Notes map to five frets and four difficulties, then the app writes a
-    Clone Hero folder: song.ogg, guitar.ogg, song.ini, notes.chart.
+    using a Hugging Face ONNX model. The guitar stem is cleaned and drum-subtracted.
+    Guitar goes to Basic Pitch, pyin confirm, and drum-onset reject. Backing goes to
+    tempo detection. Notes map to five lanes from standard tuning, then the app writes
+    a Clone Hero folder: song.ogg, guitar.ogg, song.ini, notes.chart.
   </desc>
   <defs>
     <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse">
@@ -36,7 +37,7 @@
 
   <!-- Layer 1: UI -->
   <rect class="band" x="24" y="96" width="1052" height="168" rx="12"/>
-  <text class="band-label" x="44" y="122">LAYER 1  ·  DESKTOP WINDOW  ·  src/app</text>
+  <text class="band-label" x="44" y="122">LAYER 1  ï¿½  DESKTOP WINDOW  ï¿½  src/app</text>
 
   <rect class="box-ui" x="48" y="140" width="220" height="96" rx="10"/>
   <text class="h" x="158" y="178" text-anchor="middle">Your audio file</text>
@@ -45,7 +46,7 @@
 
   <rect class="box-ui" x="320" y="140" width="250" height="96" rx="10"/>
   <text class="h" x="445" y="178" text-anchor="middle">CustomTkinter UI</text>
-  <text class="p" x="445" y="200" text-anchor="middle">Browse · Generate · wait banner</text>
+  <text class="p" x="445" y="200" text-anchor="middle">Browse Â· Sensitivity Â· Generate</text>
   <text class="tiny" x="445" y="218" text-anchor="middle">src/app/ui.py</text>
 
   <rect class="box-ui" x="622" y="140" width="210" height="96" rx="10"/>
@@ -63,7 +64,7 @@
 
   <!-- Layer 2: separate -->
   <rect class="band" x="24" y="284" width="1052" height="300" rx="12"/>
-  <text class="band-label" x="44" y="310">LAYER 2  ·  SEPARATE  ·  this is the slow part</text>
+  <text class="band-label" x="44" y="310">LAYER 2  ï¿½  SEPARATE  ï¿½  this is the slow part</text>
 
   <rect class="box" x="48" y="332" width="240" height="88" rx="10"/>
   <text class="h" x="168" y="368" text-anchor="middle">FFmpeg decode</text>
@@ -71,13 +72,13 @@
 
   <rect class="box" x="360" y="320" width="300" height="112" rx="10"/>
   <text class="h" x="510" y="356" text-anchor="middle">Demucs  htdemucs_6s</text>
-  <text class="p" x="510" y="380" text-anchor="middle">6 stems · ~7.8 s audio chunks</text>
-  <text class="tiny" x="510" y="402" text-anchor="middle">drums · bass · other · vocals · guitar · piano</text>
+  <text class="p" x="510" y="380" text-anchor="middle">6 stems ï¿½ ~7.8 s audio chunks</text>
+  <text class="tiny" x="510" y="402" text-anchor="middle">drums ï¿½ bass ï¿½ other ï¿½ vocals ï¿½ guitar ï¿½ piano</text>
   <text class="tiny" x="510" y="418" text-anchor="middle">src/pipeline/separate.py</text>
 
   <rect class="box-side" x="760" y="332" width="280" height="88" rx="10"/>
   <text class="h" x="900" y="368" text-anchor="middle">Hugging Face download</text>
-  <text class="p" x="900" y="390" text-anchor="middle">first run only · then reused</text>
+  <text class="p" x="900" y="390" text-anchor="middle">first run only ï¿½ then reused</text>
 
   <path class="line" d="M 168 236 V 332"/>
   <path class="line" d="M 288 376 H 356"/>
@@ -86,7 +87,7 @@
 
   <rect class="box" x="120" y="488" width="280" height="72" rx="10"/>
   <text class="h" x="260" y="518" text-anchor="middle">guitar.wav</text>
-  <text class="p" x="260" y="540" text-anchor="middle">isolated guitar stem</text>
+  <text class="p" x="260" y="540" text-anchor="middle">cleaned ï¿½ drums subtracted</text>
 
   <rect class="box" x="620" y="488" width="360" height="72" rx="10"/>
   <text class="h" x="800" y="518" text-anchor="middle">backing.wav</text>
@@ -97,12 +98,12 @@
 
   <!-- Layer 3: analyze -->
   <rect class="band" x="24" y="604" width="1052" height="168" rx="12"/>
-  <text class="band-label" x="44" y="630">LAYER 3  ·  ANALYZE</text>
+  <text class="band-label" x="44" y="630">LAYER 3  ï¿½  ANALYZE</text>
 
   <rect class="box" x="120" y="652" width="280" height="96" rx="10"/>
-  <text class="h" x="260" y="688" text-anchor="middle">Basic Pitch</text>
-  <text class="p" x="260" y="710" text-anchor="middle">audio ’ note times + MIDI</text>
-  <text class="tiny" x="260" y="730" text-anchor="middle">not guitar tab · E2E6 window</text>
+  <text class="h" x="260" y="688" text-anchor="middle">Basic Pitch + pyin</text>
+  <text class="p" x="260" y="710" text-anchor="middle">notes Â· drop weak drum ghosts</text>
+  <text class="tiny" x="260" y="730" text-anchor="middle">not guitar tab Â· E2-E6 window</text>
 
   <rect class="box" x="660" y="652" width="280" height="96" rx="10"/>
   <text class="h" x="800" y="688" text-anchor="middle">librosa beat_track</text>
@@ -114,16 +115,16 @@
 
   <!-- Layer 4: chart -->
   <rect class="band" x="24" y="792" width="1052" height="168" rx="12"/>
-  <text class="band-label" x="44" y="818">LAYER 4  ·  CHART  ·  heuristic, not official authoring</text>
+  <text class="band-label" x="44" y="818">LAYER 4  ï¿½  CHART  ï¿½  heuristic, not official authoring</text>
 
   <rect class="box" x="160" y="840" width="340" height="96" rx="10"/>
-  <text class="h" x="330" y="876" text-anchor="middle">Map MIDI ’ 5 frets</text>
-  <text class="p" x="330" y="898" text-anchor="middle">tonic guess · scale bands · chords cap 3</text>
-  <text class="tiny" x="330" y="918" text-anchor="middle">snap 16th / 32nd · resolution 192</text>
+  <text class="h" x="330" y="876" text-anchor="middle">Map MIDI to 5 lanes</text>
+  <text class="p" x="330" y="898" text-anchor="middle">standard tuning Â· chords cap 3</text>
+  <text class="tiny" x="330" y="918" text-anchor="middle">snap 16th / 32nd ï¿½ resolution 192</text>
 
   <rect class="box" x="580" y="840" width="360" height="96" rx="10"/>
   <text class="h" x="760" y="876" text-anchor="middle">Thin difficulties</text>
-  <text class="p" x="760" y="898" text-anchor="middle">Expert full · Hard 2 · Medium 2 · Easy 1</text>
+  <text class="p" x="760" y="898" text-anchor="middle">Expert 32nd Â· Hard 2 Â· Medium 2 Â· Easy 1</text>
   <text class="tiny" x="760" y="918" text-anchor="middle">copies of Expert, not re-transcribed</text>
 
   <path class="line" d="M 260 748 V 780 H 330 V 840"/>
@@ -132,11 +133,11 @@
 
   <!-- Layer 5: output -->
   <rect class="band" x="24" y="980" width="1052" height="310" rx="12"/>
-  <text class="band-label" x="44" y="1006">LAYER 5  ·  PACKAGE  ·  Clone Hero song folder</text>
+  <text class="band-label" x="44" y="1006">LAYER 5  ï¿½  PACKAGE  ï¿½  Clone Hero song folder</text>
 
   <rect class="box-out" x="64" y="1028" width="220" height="88" rx="10"/>
   <text class="h" x="174" y="1062" text-anchor="middle">song.ogg</text>
-  <text class="p" x="174" y="1084" text-anchor="middle">backing · no guitar</text>
+  <text class="p" x="174" y="1084" text-anchor="middle">backing ï¿½ no guitar</text>
 
   <rect class="box-out" x="308" y="1028" width="220" height="88" rx="10"/>
   <text class="h" x="418" y="1062" text-anchor="middle">guitar.ogg</text>
@@ -144,7 +145,7 @@
 
   <rect class="box-out" x="552" y="1028" width="220" height="88" rx="10"/>
   <text class="h" x="662" y="1062" text-anchor="middle">song.ini</text>
-  <text class="p" x="662" y="1084" text-anchor="middle">name · artist · length</text>
+  <text class="p" x="662" y="1084" text-anchor="middle">name ï¿½ artist ï¿½ length</text>
 
   <rect class="box-out" x="796" y="1028" width="240" height="88" rx="10"/>
   <text class="h" x="916" y="1062" text-anchor="middle">notes.chart</text>
@@ -153,7 +154,7 @@
   <rect class="box-ui" x="300" y="1160" width="500" height="100" rx="10"/>
   <text class="h" x="550" y="1198" text-anchor="middle">Clone Hero song folder</text>
   <text class="p" x="550" y="1220" text-anchor="middle">Documents\Clone Hero\Songs\&lt;Song Name&gt;</text>
-  <text class="tiny" x="550" y="1240" text-anchor="middle">Scan Songs · guitar chart only · not affiliated with Guitar Hero / Clone Hero</text>
+  <text class="tiny" x="550" y="1240" text-anchor="middle">Scan Songs ï¿½ guitar chart only ï¿½ not affiliated with Guitar Hero / Clone Hero</text>
 
   <path class="line" d="M 330 936 V 1000 H 174 V 1028"/>
   <path class="line" d="M 418 1028 V 1000"/>

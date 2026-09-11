@@ -3,6 +3,7 @@ from src.pipeline.fretmap import (
     estimate_tonic,
     map_difficulties,
     midi_to_fret,
+    midi_to_lane,
     notes_to_expert,
     snap_tick,
     thin_for_difficulty,
@@ -81,3 +82,28 @@ def test_map_difficulties_returns_all_tracks():
     data = map_difficulties(notes, tempo)
     assert data.expert
     assert len(data.easy) <= len(data.medium) <= len(data.hard) <= len(data.expert)
+
+
+def test_scale_run_lanes_are_locally_continuous():
+    pitches = [60, 62, 64, 65, 67, 69, 71, 72]
+    last_fret = None
+    last_string = None
+    lanes = []
+    for pitch in pitches:
+        lane, last_string, last_fret = midi_to_lane(
+            pitch, last_fret=last_fret, last_string=last_string
+        )
+        lanes.append(lane)
+    gaps = [abs(b - a) for a, b in zip(lanes, lanes[1:])]
+    assert gaps
+    assert max(gaps) <= 2
+    # Pitch-class banding wraps C5 back to lane 0; string mapping should not.
+    assert lanes[-1] != 0
+    assert all(0 <= lane <= 4 for lane in lanes)
+
+
+def test_string_lanes_prefer_position_continuity():
+    _lane_a, string_a, fret_a = midi_to_lane(64, last_fret=5, last_string=4)
+    _lane_b, string_b, fret_b = midi_to_lane(64)
+    assert abs(fret_a - 5) <= abs(fret_b - 5) + 2
+    assert 0 <= string_a <= 5

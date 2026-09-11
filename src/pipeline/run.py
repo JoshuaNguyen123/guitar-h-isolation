@@ -5,18 +5,26 @@ import tempfile
 from collections.abc import Callable
 from pathlib import Path
 
+import numpy as np
 import soundfile as sf
 
+from src.pipeline.confirm import confirm_with_pyin
+from src.pipeline.drum_reject import reject_drum_aligned
 from src.pipeline.fretmap import map_difficulties
 from src.pipeline.hf import configure_fast_hf, model_is_cached
 from src.pipeline.package import package_song
 from src.pipeline.separate import isolate_guitar
 from src.pipeline.tempo import estimate_tempo
-from src.pipeline.transcribe import transcribe_guitar
+from src.pipeline.transcribe import choose_sensitivity, transcribe_guitar
 from src.pipeline.types import SongMeta
 from src.pipeline.util import ensure_ffmpeg, sanitize_folder_name
 
 ProgressFn = Callable[[str, float], None]
+
+
+def _load_stereo(path: Path) -> tuple[np.ndarray, int]:
+    audio, sr = sf.read(str(path), always_2d=True)
+    return np.asarray(audio, dtype=np.float32).T, int(sr)
 
 
 def run_pipeline(
@@ -28,6 +36,7 @@ def run_pipeline(
     genre: str = "",
     year: str = "",
     progress: ProgressFn | None = None,
+    sensitivity: str = "auto",
 ) -> Path:
     def report(stage: str, fraction: float) -> None:
         if progress is not None:
@@ -50,8 +59,22 @@ def run_pipeline(
         report("Separate", 0.08)
         separation = isolate_guitar(input_path, work_dir)
 
+        guitar_audio, sr = _load_stereo(separation.guitar_wav)
+        backing_audio, _ = _load_stereo(separation.backing_wav)
+        preset = choose_sensitivity(
+            sensitivity,
+            guitar_audio,
+            backing_audio,
+            sr,
+        )
+
         report("Transcribe", 0.62)
-        notes = transcribe_guitar(separation.guitar_wav)
+        notes = transcribe_guitar(separation.guitar_wav, sensitivity=preset)
+        notes = confirm_with_pyin(notes, separation.guitar_wav)
+        notes = reject_drum_aligned(
+            notes,
+            separation.drums_wav or separation.backing_wav,
+        )
 
         report("Detecting tempo", 0.80)
         tempo = estimate_tempo(separation.backing_wav)

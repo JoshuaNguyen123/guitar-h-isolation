@@ -1,0 +1,109 @@
+{
+  "clip_id": "electric_lick",
+  "source": "tests/fixtures/electric_lick.mp3",
+  "curation": "Basic Pitch draft (onset 0.5 / frame 0.3) thinned to duration>=70ms, velocity>=0.38, guitar MIDI 40-88, merged same-pitch overlaps.",
+  "notes": [
+    {
+      "start_s": 0.1741,
+      "end_s": 0.3483,
+      "midi_pitch": 61,
+      "velocity": 0.631
+    },
+    {
+      "start_s": 0.3367,
+      "end_s": 0.5108,
+      "midi_pitch": 64,
+      "velocity": 0.6471
+    },
+    {
+      "start_s": 0.5224,
+      "end_s": 0.6618,
+      "midi_pitch": 66,
+      "velocity": 0.4726
+    },
+    {
+      "start_s": 0.7663,
+      "end_s": 0.9288,
+      "midi_pitch": 69,
+      "velocity": 0.4883
+    },
+    {
+      "start_s": 0.894,
+      "end_s": 1.4745,
+      "midi_pitch": 45,
+      "velocity": 0.5343
+    },
+    {
+      "start_s": 1.3351,
+      "end_s": 1.4861,
+      "midi_pitch": 69,
+      "velocity": 0.4455
+    },
+    {
+      "start_s": 1.4745,
+      "end_s": 2.0214,
+      "midi_pitch": 45,
+      "velocity": 0.5654
+    },
+    {
+      "start_s": 1.7531,
+      "end_s": 1.904,
+      "midi_pitch": 64,
+      "velocity": 0.3803
+    },
+    {
+      "start_s": 1.8924,
+      "end_s": 2.0214,
+      "midi_pitch": 69,
+      "velocity": 0.4772
+    },
+    {
+      "start_s": 1.904,
+      "end_s": 2.0679,
+      "midi_pitch": 64,
+      "velocity": 0.403
+    },
+    {
+      "start_s": 2.0214,
+      "end_s": 2.3813,
+      "midi_pitch": 45,
+      "velocity": 0.6188
+    },
+    {
+      "start_s": 2.4045,
+      "end_s": 2.5555,
+      "midi_pitch": 48,
+      "velocity": 0.4831
+    },
+    {
+      "start_s": 2.7645,
+      "end_s": 2.9038,
+      "midi_pitch": 45,
+      "velocity": 0.4667
+    },
+    {
+      "start_s": 2.9386,
+      "end_s": 3.0779,
+      "midi_pitch": 64,
+      "velocity": 0.3893
+    },
+    {
+      "start_s": 3.0663,
+      "end_s": 3.2985,
+      "midi_pitch": 61,
+      "velocity": 0.6515
+    },
+    {
+      "start_s": 3.3566,
+      "end_s": 3.5075,
+      "midi_pitch": 57,
+      "velocity": 0.6519
+    },
+    {
+      "start_s": 3.612,
+      "end_s": 5.2387,
+      "midi_pitch": 57,
+      "velocity": 0.9143
+    }
+  ]
+}

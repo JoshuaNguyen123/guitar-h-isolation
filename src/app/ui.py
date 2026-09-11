@@ -34,8 +34,8 @@ class App(ctk.CTk):
     def __init__(self) -> None:
         super().__init__()
         self.title("Guitar H Isolation")
-        self.geometry("720x780")
-        self.minsize(640, 700)
+        self.geometry("720x860")
+        self.minsize(640, 760)
 
         ctk.set_appearance_mode("dark")
         ctk.set_default_color_theme("dark-blue")
@@ -143,6 +143,28 @@ class App(ctk.CTk):
             hover_color="#4a4334",
             command=self._browse_output,
         ).pack(side="left", padx=(10, 0))
+
+        self._add_label(body, "Note sensitivity")
+        self.sensitivity_var = tk.StringVar(value="Auto")
+        ctk.CTkSegmentedButton(
+            body,
+            values=["Auto", "Strict", "Balanced", "Sensitive"],
+            variable=self.sensitivity_var,
+            height=34,
+            fg_color="#3a3428",
+            selected_color="#c4892a",
+            selected_hover_color="#a87120",
+            unselected_color="#3a3428",
+            unselected_hover_color="#4a4334",
+        ).pack(fill="x", padx=18, pady=(4, 8))
+        ctk.CTkLabel(
+            body,
+            text="Auto picks Strict on bleed-heavy stems. Strict = fewer extras. Sensitive = more notes.",
+            font=ctk.CTkFont(family="Segoe UI", size=12),
+            text_color="#8f8574",
+            wraplength=620,
+            justify="left",
+        ).pack(anchor="w", padx=18, pady=(0, 8))
 
         self.generate_btn = ctk.CTkButton(
             body,
@@ -293,17 +315,37 @@ class App(ctk.CTk):
 
         thread = threading.Thread(
             target=self._worker,
-            args=(Path(src), Path(dest), name, artist or "Unknown"),
+            args=(
+                Path(src),
+                Path(dest),
+                name,
+                artist or "Unknown",
+                self.sensitivity_var.get().strip().lower(),
+            ),
             daemon=True,
         )
         thread.start()
 
-    def _worker(self, src: Path, dest: Path, name: str, artist: str) -> None:
+    def _worker(
+        self,
+        src: Path,
+        dest: Path,
+        name: str,
+        artist: str,
+        sensitivity: str,
+    ) -> None:
         def progress(stage: str, fraction: float) -> None:
             self._events.put(("progress", stage, fraction))
 
         try:
-            output = run_pipeline(src, dest, name, artist, progress=progress)
+            output = run_pipeline(
+                src,
+                dest,
+                name,
+                artist,
+                progress=progress,
+                sensitivity=sensitivity,
+            )
             self._events.put(("done", output))
         except Exception as exc:
             self._events.put(("error", str(exc)))

@@ -44,19 +44,20 @@ flowchart TB
   subgraph SEP["Layer 2 · Separate · this is the slow part"]
     FFMPEG["FFmpeg decode<br/>stereo 44.1 kHz WAV"] --> DEMUCS["Demucs htdemucs_6s<br/>6 stems in ~7.8 s chunks"]
     HF --> DEMUCS
-    DEMUCS --> GUITAR["guitar.wav<br/>isolated guitar"]
+    DEMUCS --> CLEAN["Clean + subtract drums"]
+    CLEAN --> GUITAR["guitar.wav<br/>isolated guitar"]
     DEMUCS --> BACK["backing.wav<br/>drums + bass + vocals + piano + other"]
   end
 
   subgraph AN["Layer 3 · Analyze"]
-    GUITAR --> BP["Basic Pitch<br/>note times + MIDI<br/>not guitar tab"]
+    GUITAR --> BP["Basic Pitch + pyin<br/>note times + MIDI"]
     BACK --> BPM["librosa beat_track<br/>one BPM for the whole song"]
   end
 
   subgraph CH["Layer 4 · Chart · heuristic"]
-    BP --> MAP["Map MIDI to 5 frets<br/>tonic · scale bands · chords cap 3"]
+    BP --> MAP["String-aware 5-lane map<br/>standard tuning · chords cap 3"]
     BPM --> MAP
-    MAP --> THIN["Thin difficulties<br/>Expert full · Hard 2 · Medium 2 · Easy 1"]
+    MAP --> THIN["Thin difficulties<br/>Expert 32nd · Hard 2 · Medium 2 · Easy 1"]
   end
 
   subgraph PKG["Layer 5 · Package"]
@@ -73,7 +74,7 @@ flowchart TB
 
 The diagram is five processing layers. The code that runs them is two pieces:
 
-1. **Desktop UI** (`src/app`) — CustomTkinter window. Browse, Generate, progress, open folder.
+1. **Desktop UI** (`src/app`) — CustomTkinter window. Browse, sensitivity, Generate, progress, open folder.
 2. **Pipeline** (`src/pipeline`) — the work above. The UI starts it on a background thread so the window does not freeze.
 
 `python -m src.app.main` or `run.bat` starts the UI. `--demo` prefills the public acoustic clip and starts Generate.
@@ -124,8 +125,8 @@ Only if the Demucs ONNX file is not already cached. See above.
 
 1. FFmpeg decodes the input to a stereo 44.1 kHz WAV in a temp folder.
 2. `demucs-onnx` runs `htdemucs_6s` and returns six stems: drums, bass, other, vocals, guitar, piano.
-3. **Guitar stem** is saved as `guitar.wav`.
-4. **Backing** is the sum of drums + bass + vocals + piano + other. Guitar is left out on purpose.
+3. **Guitar stem** is band-limited and gated (`stem_clean.py`), then drums are STFT soft-subtracted from it.
+4. **Backing** is the sum of drums + bass + vocals + piano + other. Guitar is left out on purpose. The drums stem is also written for later note rejection.
 5. Peaks are normalized if they clip above 1.0.
 
 Honesty about isolation:
@@ -141,7 +142,10 @@ Spotify **Basic Pitch** (ICASSP 2022 ONNX) listens to the guitar stem only.
 
 - Frequency window: about E2 to E6 (82 Hz to 1318 Hz)
 - MIDI kept: 40 to 88
-- Onset threshold 0.5, frame threshold 0.3
+- Sensitivity presets: Strict / Balanced / Sensitive (Auto uses bleed + crest on the isolated stem)
+- Balanced defaults: onset 0.58, frame 0.38, drop velocity below 0.35
+- Weak leftover notes must match `librosa.pyin` within 50 cents
+- Weak notes that sit on a drum onset are dropped; strong on-beat guitar stays
 
 Output is a list of note events: start time, end time, MIDI pitch, velocity.
 
@@ -168,18 +172,19 @@ Clone Hero guitar is **five buttons**, not a real fretboard. The app must squash
 
 How Expert is built:
 
-1. Guess a **tonic** (key center) with a Krumhansl–Schmuckler major-key profile.
-2. Map each pitch class relative to that tonic onto frets 0–4 (scale-band mapping).
+1. Map each MIDI pitch to a fingering on standard tuning (E2 A2 D3 G3 B3 E4), preferring a stable left-hand position.
+2. Collapse six strings onto five Clone Hero lanes: low E→green, A→red, D→yellow, G→blue, B and high E→orange.
 3. Notes that start within 40 ms are treated as a **chord**, capped at **3** frets.
 4. Times are converted to ticks at **resolution 192**.
 5. Hits snap toward 16th notes, or 32nds if they are not close enough to a 16th.
 6. Sustains shorter than a quarter beat become tap notes (sustain 0). Overlapping sustains on the same fret are clamped.
+7. Expert is then density-pruned to a 32nd-note floor so bleed storms stay playable.
 
 Harder / easier tracks are **thinned copies of Expert**, not re-transcribed:
 
 | Difficulty | Max chord | Minimum spacing |
 | --- | --- | --- |
-| Expert | 3 | none beyond snapping |
+| Expert | 3 | 32nd note |
 | Hard | 2 | 16th note |
 | Medium | 2 | 8th note |
 | Easy | 1 | quarter note |
@@ -187,7 +192,7 @@ Harder / easier tracks are **thinned copies of Expert**, not re-transcribed:
 Honesty about charts:
 
 - This is **not** Guitar Hero authoring and **not** real guitar tab.
-- Lane colors come from pitch-class bands, not from actual fingering.
+- Lane colors come from string/fret estimates, not from a human charter.
 - Hopos, star power, force flags, tap notes as a special type, and open notes are not written.
 - Time signature is hardcoded as 4/4 from tick 0.
 - Offset is 0. No calibration pass against Clone Hero video or audio latency.
@@ -208,7 +213,7 @@ FFmpeg encodes the two WAVs to Vorbis OGG (`-q:a 5`). Then it writes `song.ini` 
 
 ## User interface
 
-`src/app/ui.py` is a dark CustomTkinter window.
+`src/app/ui.py` is a dark CustomTkinter window. It has a **Note sensitivity** control: Auto, Strict, Balanced, Sensitive. Auto is the default.
 
 While Generate runs:
 
@@ -232,9 +237,12 @@ src/pipeline/run.py      stage order
 src/pipeline/audio.py    FFmpeg decode / OGG encode
 src/pipeline/hf.py       Hugging Face cache and faster downloads
 src/pipeline/separate.py Demucs 6-stem split and backing mix
-src/pipeline/transcribe.py Basic Pitch
+src/pipeline/transcribe.py Basic Pitch + sensitivity presets
+src/pipeline/confirm.py    pyin check on weak notes
+src/pipeline/drum_reject.py drop weak drum-aligned ghosts
 src/pipeline/tempo.py    BPM
-src/pipeline/fretmap.py  MIDI to 5-fret + difficulty thinning
+src/pipeline/stem_clean.py post-Demucs cleanup + drums subtract
+src/pipeline/fretmap.py  string-aware 5-lane map + difficulty thinning
 src/pipeline/chart_writer.py text .chart
 src/pipeline/package.py  song folder
 src/pipeline/types.py    shared data shapes
@@ -264,7 +272,8 @@ Default output: `Documents\Clone Hero\Songs\<Song Name>`
 | demucs-onnx + htdemucs_6s | 6-stem split including guitar | Hugging Face `StemSplitio/htdemucs-6s-onnx` (Meta Demucs family) |
 | onnxruntime | run the ONNX graphs | pip |
 | Basic Pitch | audio to MIDI-like notes | Spotify model bundled with the `basic-pitch` package |
-| librosa | tempo | pip |
+| librosa | tempo, pyin confirm, drum onsets | pip |
+| scipy | guitar-stem band filters | pip |
 | CustomTkinter | window | pip |
 
 The app itself is MIT. Third-party models keep their own licenses. Read those before you ship a commercial product on top of this.
@@ -288,6 +297,8 @@ Test audio used in this repo is listed in `tests/fixtures/CLIPS.md` with attribu
 
 Proven in this repo on short **public-domain / Creative Commons** clips: the pipeline writes real OGGs and a chart with notes on all four difficulties.
 
+Quantitative regression numbers (onset F-measure on synthetic licks, bleed proxy, Expert density) live in [`tests/eval/BASELINE.md`](tests/eval/BASELINE.md). Re-run with `python -m tests.eval.run_baseline`.
+
 Not proven, and not claimed:
 
 - launching Clone Hero for you
@@ -296,3 +307,12 @@ Not proven, and not claimed:
 - beat-perfect sync on every song
 
 If a chart feels wrong, the usual causes are isolation bleed, Basic Pitch errors, or a bad BPM, in that order.
+
+Mitigations in this build:
+
+- post-Demucs guitar stem cleanup and drums STFT soft-subtract
+- Auto / Strict / Balanced / Sensitive transcription
+- pyin confirm on weak notes; drum-onset reject on low-velocity ghosts
+- string-aware 5-lane fretting with position continuity
+- Expert 32nd-note density floor before Hard/Medium/Easy thinning
+

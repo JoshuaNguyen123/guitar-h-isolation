@@ -13,6 +13,10 @@ from src.pipeline.types import (
 CHORD_WINDOW_S = 0.04
 MAX_CHORD = 3
 MIN_SUSTAIN_BEAT_FRACTION = 0.25
+# Expert used to keep every Basic Pitch hit. A light spacing floor stops
+# bleed/false-onset storms from becoming an unplayable highway.
+EXPERT_MIN_SPACING_DIVISOR = 8  # 32nd notes at RESOLUTION=192 → 24 ticks
+EXPERT_MAX_CHORD = MAX_CHORD
 
 # Krumhansl-Schmuckler major-key profile
 _MAJOR_PROFILE = (
@@ -29,6 +33,103 @@ _MAJOR_PROFILE = (
     2.29,
     2.88,
 )
+
+
+# Standard guitar tuning → Clone Hero lanes.
+# High E shares orange with B so six strings fit five frets.
+STANDARD_TUNING = (40, 45, 50, 55, 59, 64)  # E2 A2 D3 G3 B3 E4
+STRING_TO_LANE = (0, 1, 2, 3, 4, 4)
+MAX_PLAYABLE_FRET = 19
+PREFERRED_FRET_CENTER = 5
+
+
+def fingering_candidates(midi_pitch: int) -> list[tuple[int, int]]:
+    found: list[tuple[int, int]] = []
+    for string_i, open_midi in enumerate(STANDARD_TUNING):
+        fret = midi_pitch - open_midi
+        if 0 <= fret <= MAX_PLAYABLE_FRET:
+            found.append((string_i, fret))
+    return found
+
+
+def pick_fingering(
+    midi_pitch: int,
+    last_fret: int | None = None,
+    last_string: int | None = None,
+    target_fret: int | None = None,
+) -> tuple[int, int]:
+    candidates = fingering_candidates(midi_pitch)
+    if not candidates:
+        if midi_pitch < STANDARD_TUNING[0]:
+            return 0, 0
+        return 5, min(MAX_PLAYABLE_FRET, midi_pitch - STANDARD_TUNING[5])
+
+    def score(pair: tuple[int, int]) -> float:
+        string_i, fret = pair
+        cost = abs(fret - PREFERRED_FRET_CENTER) * 0.35
+        if target_fret is not None:
+            cost += abs(fret - target_fret) * 2.0
+        if last_fret is not None:
+            cost += abs(fret - last_fret) * 2.2
+        if last_string is not None:
+            cost += abs(string_i - last_string) * 0.45
+        return cost
+
+    return min(candidates, key=score)
+
+
+def midi_to_lane(
+    midi_pitch: int,
+    last_fret: int | None = None,
+    last_string: int | None = None,
+    target_fret: int | None = None,
+) -> tuple[int, int, int]:
+    """Return (clone-hero fret 0-4, string index, guitar fret)."""
+    string_i, fret = pick_fingering(
+        midi_pitch,
+        last_fret=last_fret,
+        last_string=last_string,
+        target_fret=target_fret,
+    )
+    return STRING_TO_LANE[string_i], string_i, fret
+
+
+def _resolve_lane_collisions(lanes: list[int]) -> list[int]:
+    used: set[int] = set()
+    out: list[int] = []
+    for lane in lanes:
+        if lane not in used:
+            used.add(lane)
+            out.append(lane)
+            continue
+        placed = False
+        for delta in (1, -1, 2, -2, 3, -3, 4, -4):
+            cand = lane + delta
+            if 0 <= cand <= 4 and cand not in used:
+                used.add(cand)
+                out.append(cand)
+                placed = True
+                break
+        if not placed:
+            continue
+    return out
+
+
+def _shared_target_fret(midi_pitches: list[int]) -> int:
+    best = PREFERRED_FRET_CENTER
+    best_score = float("inf")
+    for target in range(0, 13):
+        score = 0.0
+        for pitch in midi_pitches:
+            cands = fingering_candidates(pitch)
+            if not cands:
+                score += 24.0
+                continue
+            score += min(abs(fret - target) for _s, fret in cands)
+        if score < best_score:
+            best_score = score
+            best = target
+    return best
 
 
 def estimate_tonic(midi_pitches: list[int]) -> int:
@@ -60,39 +161,27 @@ def midi_to_fret(midi_pitch: int, tonic: int) -> int:
     return 4
 
 
-def assign_chord_frets(midi_pitches: list[int], tonic: int, max_chord: int = MAX_CHORD) -> list[int]:
+def assign_chord_frets(midi_pitches: list[int], tonic: int = 0, max_chord: int = MAX_CHORD) -> list[int]:
+    """Map simultaneous MIDI pitches to distinct Clone Hero lanes via string fingering.
+
+    ``tonic`` is unused; kept so existing callers/tests still type-check.
+    """
+    del tonic
     unique = sorted(set(midi_pitches))
     if not unique:
         return []
-    if len(unique) == 1:
-        return [midi_to_fret(unique[0], tonic)]
-
-    chosen = unique
-    if len(chosen) > max_chord:
-        # Keep lowest, highest, and evenly spaced inner pitches.
+    if len(unique) > max_chord:
         if max_chord == 1:
-            chosen = [unique[len(unique) // 2]]
+            unique = [unique[len(unique) // 2]]
         elif max_chord == 2:
-            chosen = [unique[0], unique[-1]]
+            unique = [unique[0], unique[-1]]
         else:
             indexes = [round(i * (len(unique) - 1) / (max_chord - 1)) for i in range(max_chord)]
-            chosen = [unique[i] for i in dict.fromkeys(indexes)]
-
-    low = chosen[0]
-    high = chosen[-1]
-    span = max(high - low, 1)
-    frets: list[int] = []
-    for pitch in chosen:
-        raw = int(round((pitch - low) / span * min(4, max(1, len(chosen) - 1))))
-        fret = max(0, min(4, raw))
-        if fret in frets:
-            for candidate in range(5):
-                if candidate not in frets:
-                    fret = candidate
-                    break
-        if fret not in frets:
-            frets.append(fret)
-    return sorted(frets)[:max_chord]
+            unique = [unique[i] for i in dict.fromkeys(indexes)]
+    target = _shared_target_fret(unique)
+    lanes = [midi_to_lane(pitch, target_fret=target)[0] for pitch in unique]
+    resolved = _resolve_lane_collisions(lanes)
+    return sorted(resolved)[:max_chord]
 
 
 def snap_tick(tick: int, resolution: int = RESOLUTION) -> int:
@@ -143,16 +232,31 @@ def clamp_sustains(notes: list[ChartNote], resolution: int = RESOLUTION) -> list
 
 
 def notes_to_expert(notes: list[NoteEvent], tempo: TempoMap) -> list[ChartNote]:
-    tonic = estimate_tonic([n.midi_pitch for n in notes])
     chart: list[ChartNote] = []
     seen: set[tuple[int, int]] = set()
+    last_fret: int | None = None
+    last_string: int | None = None
     for group in _group_onsets(notes):
         start_s = min(n.start_s for n in group)
         end_s = max(n.end_s for n in group)
         start_tick = snap_tick(tempo.time_to_tick(start_s), tempo.resolution)
         end_tick = tempo.time_to_tick(end_s)
         sustain = _sustain_ticks(start_tick, end_tick, tempo.resolution)
-        frets = assign_chord_frets([n.midi_pitch for n in group], tonic)
+        pitches = [n.midi_pitch for n in group]
+        if len(pitches) == 1:
+            lane, last_string, last_fret = midi_to_lane(
+                pitches[0],
+                last_fret=last_fret,
+                last_string=last_string,
+            )
+            frets = [lane]
+        else:
+            frets = assign_chord_frets(pitches)
+            _lane, last_string, last_fret = midi_to_lane(
+                max(pitches),
+                last_fret=last_fret,
+                last_string=last_string,
+            )
         for fret in frets:
             key = (start_tick, fret)
             if key in seen:
@@ -202,8 +306,19 @@ def thin_for_difficulty(
     return clamp_sustains(kept)
 
 
+def prune_expert_density(notes: list[ChartNote], resolution: int = RESOLUTION) -> list[ChartNote]:
+    """Keep Expert playable when transcription returns near-continuous false notes."""
+    min_spacing = max(resolution // EXPERT_MIN_SPACING_DIVISOR, 1)
+    return thin_for_difficulty(
+        notes,
+        max_chord=EXPERT_MAX_CHORD,
+        min_spacing=min_spacing,
+    )
+
+
 def map_difficulties(notes: list[NoteEvent], tempo: TempoMap) -> ChartData:
-    expert = notes_to_expert(notes, tempo)
+    expert_raw = notes_to_expert(notes, tempo)
+    expert = prune_expert_density(expert_raw, tempo.resolution)
     res = tempo.resolution
     return ChartData(
         expert=expert,
