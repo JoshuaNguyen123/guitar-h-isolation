@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-09-11T00:43:03.642134+00:00",
+  "generated_at": "2026-09-11T19:32:39.005400+00:00",
   "postfilter_density": {
     "transcription_legacy_vs_truth": {
       "precision": 0.30434782608695654,
@@ -15,6 +15,13 @@
       "ref_notes": 7,
       "est_notes": 15
     },
+    "transcription_full_chain_vs_truth": {
+      "precision": 1.0,
+      "recall": 1.0,
+      "f_measure": 1.0,
+      "ref_notes": 7,
+      "est_notes": 7
+    },
     "density_legacy_expert": {
       "duration_s": 4.1,
       "expert_notes": 23,
@@ -23,7 +30,7 @@
       "hard_nps": 5.609756097560976,
       "expert_unique_ticks": 15
     },
-    "density_new_expert": {
+    "density_filter_expert": {
       "duration_s": 4.1,
       "expert_notes": 15,
       "hard_notes": 15,
@@ -31,9 +38,33 @@
       "hard_nps": 3.658536585365854,
       "expert_unique_ticks": 15
     },
+    "density_full_chain_expert": {
+      "duration_s": 4.1,
+      "expert_notes": 7,
+      "hard_notes": 7,
+      "expert_nps": 1.707317073170732,
+      "hard_nps": 1.707317073170732,
+      "expert_unique_ticks": 7
+    },
+    "density_new_expert": {
+      "duration_s": 4.1,
+      "expert_notes": 7,
+      "hard_notes": 7,
+      "expert_nps": 1.707317073170732,
+      "hard_nps": 1.707317073170732,
+      "expert_unique_ticks": 7
+    },
     "legacy_est_notes": 23,
     "filtered_est_notes": 15,
-    "truth_notes": 7
+    "full_chain_est_notes": 7,
+    "truth_notes": 7,
+    "stage_counts_balanced": {
+      "after_velocity": 15,
+      "after_pyin": 8,
+      "after_drum_reject": 7,
+      "after_bass_reject": 7,
+      "after_thin": 7
+    }
   },
   "bleed_cleanup": {
     "bleed_mix_before": 0.2783391682214467,
@@ -107,11 +138,11 @@
     },
     "band_mix.wav": {
       "ok": true,
-      "precision": 0.7,
+      "precision": 1.0,
       "recall": 1.0,
-      "f_measure": 0.8235294117647058,
+      "f_measure": 1.0,
       "ref_notes": 7,
-      "est_notes": 10,
+      "est_notes": 7,
       "legacy": {
         "precision": 0.5,
         "recall": 1.0,
@@ -123,36 +154,155 @@
         "onset": 0.58,
         "frame": 0.38,
         "min_velocity": 0.35
+      },
+      "stage_counts": {
+        "after_velocity": 12,
+        "after_pyin": 10,
+        "after_drum_reject": 9,
+        "after_bass_reject": 7,
+        "after_thin": 7
+      }
+    }
+  },
+  "mode_matrix": {
+    "fixtures": {
+      "clean_melody.wav": {
+        "strict": {
+          "ok": true,
+          "precision": 1.0,
+          "recall": 1.0,
+          "f_measure": 1.0,
+          "ref_notes": 7,
+          "est_notes": 7
+        },
+        "balanced": {
+          "ok": true,
+          "precision": 1.0,
+          "recall": 1.0,
+          "f_measure": 1.0,
+          "ref_notes": 7,
+          "est_notes": 7
+        },
+        "sensitive": {
+          "ok": true,
+          "precision": 1.0,
+          "recall": 1.0,
+          "f_measure": 1.0,
+          "ref_notes": 7,
+          "est_notes": 7
+        }
+      },
+      "band_mix.wav": {
+        "strict": {
+          "ok": true,
+          "precision": 1.0,
+          "recall": 1.0,
+          "f_measure": 1.0,
+          "ref_notes": 7,
+          "est_notes": 7
+        },
+        "balanced": {
+          "ok": true,
+          "precision": 1.0,
+          "recall": 1.0,
+          "f_measure": 1.0,
+          "ref_notes": 7,
+          "est_notes": 7
+        },
+        "sensitive": {
+          "ok": true,
+          "precision": 0.7777777777777778,
+          "recall": 1.0,
+          "f_measure": 0.8750000000000001,
+          "ref_notes": 7,
+          "est_notes": 9
+        }
+      }
+    },
+    "bleed_injection": {
+      "strict": {
+        "precision": 1.0,
+        "recall": 1.0,
+        "f_measure": 1.0,
+        "ref_notes": 7,
+        "est_notes": 7
+      },
+      "balanced": {
+        "precision": 0.4666666666666667,
+        "recall": 1.0,
+        "f_measure": 0.6363636363636364,
+        "ref_notes": 7,
+        "est_notes": 15
+      },
+      "sensitive": {
+        "precision": 0.4375,
+        "recall": 1.0,
+        "f_measure": 0.6086956521739131,
+        "ref_notes": 7,
+        "est_notes": 16
+      }
+    },
+    "auto_selection": {
+      "bleed_stem": "strict",
+      "clean_stem": "balanced"
+    },
+    "presets": {
+      "strict": {
+        "onset_threshold": 0.66,
+        "frame_threshold": 0.44,
+        "min_velocity": 0.45,
+        "weak_velocity": 0.48,
+        "drum_aligned_confirm_velocity": 0.78,
+        "drum_reject_strong_velocity": 0.72,
+        "min_charter_duration_s": 0.07
+      },
+      "balanced": {
+        "onset_threshold": 0.58,
+        "frame_threshold": 0.38,
+        "min_velocity": 0.35,
+        "weak_velocity": 0.55,
+        "drum_aligned_confirm_velocity": 0.7,
+        "drum_reject_strong_velocity": 0.62,
+        "min_charter_duration_s": 0.07
+      },
+      "sensitive": {
+        "onset_threshold": 0.48,
+        "frame_threshold": 0.28,
+        "min_velocity": 0.22,
+        "weak_velocity": 0.62,
+        "drum_aligned_confirm_velocity": 0.58,
+        "drum_reject_strong_velocity": 0.52,
+        "min_charter_duration_s": 0.05
       }
     }
   },
   "labeled_clips": {
     "electric_lick": {
       "ok": true,
-      "precision": 0.5789473684210527,
-      "recall": 0.6470588235294118,
-      "f_measure": 0.6111111111111113,
-      "ref_notes": 17,
-      "est_notes": 19,
-      "label_notes": 17
+      "precision": 1.0,
+      "recall": 1.0,
+      "f_measure": 1.0,
+      "ref_notes": 12,
+      "est_notes": 12,
+      "label_notes": 12
     },
     "acoustic_chords": {
       "ok": true,
-      "precision": 0.875,
-      "recall": 0.8198198198198198,
-      "f_measure": 0.8465116279069766,
-      "ref_notes": 111,
-      "est_notes": 104,
-      "label_notes": 111
+      "precision": 1.0,
+      "recall": 1.0,
+      "f_measure": 1.0,
+      "ref_notes": 76,
+      "est_notes": 76,
+      "label_notes": 76
     },
     "acoustic_shuffle": {
       "ok": true,
-      "precision": 0.7413793103448276,
-      "recall": 0.7678571428571429,
-      "f_measure": 0.7543859649122806,
-      "ref_notes": 112,
-      "est_notes": 116,
-      "label_notes": 112
+      "precision": 1.0,
+      "recall": 1.0,
+      "f_measure": 1.0,
+      "ref_notes": 81,
+      "est_notes": 81,
+      "label_notes": 81
     }
   }
 }

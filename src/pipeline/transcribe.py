@@ -12,19 +12,56 @@ MIN_GUITAR_HZ = 82.0
 MAX_GUITAR_HZ = 1318.5
 MIN_NOTE_DURATION_S = 0.04
 
-
 @dataclass(frozen=True)
 class SensitivityParams:
+    """Basic Pitch + post-filter aggressiveness for one named mode."""
+
     name: str
     onset_threshold: float
     frame_threshold: float
     min_velocity: float
-
+    # Off-grid notes at/above this skip pyin confirm.
+    weak_velocity: float
+    # Drum-aligned notes at/above this skip pyin (stricter than weak_velocity).
+    drum_aligned_confirm_velocity: float
+    # Drum-aligned notes at/above this skip drum-onset reject.
+    drum_reject_strong_velocity: float
+    # Charter thinning minimum duration (Sensitive keeps shorter notes).
+    min_charter_duration_s: float
 
 SENSITIVITY_PRESETS: dict[str, SensitivityParams] = {
-    "strict": SensitivityParams("strict", 0.64, 0.42, 0.42),
-    "balanced": SensitivityParams("balanced", 0.58, 0.38, 0.35),
-    "sensitive": SensitivityParams("sensitive", 0.50, 0.30, 0.25),
+    "strict": SensitivityParams(
+        name="strict",
+        onset_threshold=0.66,
+        frame_threshold=0.44,
+        min_velocity=0.45,
+        weak_velocity=0.48,
+        # Higher bars = harder to skip confirm/reject on drum hits (fewer bleed ghosts).
+        drum_aligned_confirm_velocity=0.78,
+        drum_reject_strong_velocity=0.72,
+        min_charter_duration_s=0.07,
+    ),
+    "balanced": SensitivityParams(
+        name="balanced",
+        onset_threshold=0.58,
+        frame_threshold=0.38,
+        min_velocity=0.35,
+        weak_velocity=0.55,
+        drum_aligned_confirm_velocity=0.70,
+        drum_reject_strong_velocity=0.62,
+        min_charter_duration_s=0.07,
+    ),
+    "sensitive": SensitivityParams(
+        name="sensitive",
+        onset_threshold=0.48,
+        frame_threshold=0.28,
+        min_velocity=0.22,
+        weak_velocity=0.62,
+        # Lower bars = keep more quiet / on-beat notes (more recall, more notes).
+        drum_aligned_confirm_velocity=0.58,
+        drum_reject_strong_velocity=0.52,
+        min_charter_duration_s=0.05,
+    ),
 }
 
 # Back-compat names = balanced preset (see tests/eval/BASELINE.md).
@@ -37,7 +74,6 @@ BLEED_SENSITIVE = 0.035
 CREST_STRICT = 3.5
 CREST_SENSITIVE = 7.5
 
-
 def resolve_preset(name: str | SensitivityParams | None) -> SensitivityParams:
     if isinstance(name, SensitivityParams):
         return name
@@ -45,7 +81,6 @@ def resolve_preset(name: str | SensitivityParams | None) -> SensitivityParams:
     if key == "auto":
         key = "balanced"
     return SENSITIVITY_PRESETS.get(key, SENSITIVITY_PRESETS["balanced"])
-
 
 def choose_sensitivity(
     mode: str,
@@ -71,7 +106,6 @@ def choose_sensitivity(
     if bleed <= BLEED_SENSITIVE and crest >= CREST_SENSITIVE:
         return "sensitive"
     return "balanced"
-
 
 def filter_note_events(
     raw_events,
@@ -101,7 +135,6 @@ def filter_note_events(
         )
     notes.sort(key=lambda n: (n.start_s, n.midi_pitch))
     return notes
-
 
 def transcribe_guitar(
     guitar_wav: Path,

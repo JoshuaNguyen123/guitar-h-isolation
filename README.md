@@ -55,10 +55,10 @@ If the window never opens, double-click `install.bat`, wait until it says **Inst
 3. Check **Song name** and **Artist**. Change them if they look wrong.
 4. Leave **Note sensitivity** on **Auto** unless a chart feels wrong.
 
-   - **Auto** picks a setting from how messy the isolated guitar sounds
-   - **Strict** keeps fewer notes (use this if Expert tracks the drums)
-   - **Balanced** is the default middle setting
-   - **Sensitive** keeps more notes on quiet or clean guitar
+   - **Auto** picks Strict on bleed-heavy stems, Sensitive on clean high-crest stems, otherwise Balanced
+   - **Strict** highest precision (use this if Expert tracks the drums)
+   - **Balanced** middle setting (default when Auto is unsure)
+   - **Sensitive** highest recall on quiet or clean guitar
 
 5. Leave **Output folder** alone unless you know Clone Hero is in portable mode.
 

@@ -145,8 +145,9 @@ Spotify **Basic Pitch** (ICASSP 2022 ONNX) listens to the guitar stem only.
 - Frequency window: about E2 to E6 (82 Hz to 1318 Hz)
 - MIDI kept: 40 to 88
 - Sensitivity presets: Strict / Balanced / Sensitive (Auto uses bleed + crest on the isolated stem)
+- Each mode sets Basic Pitch onset/frame/min_velocity **and** pyin / drum-reject aggressiveness
 - Balanced defaults: onset 0.58, frame 0.38, drop velocity below 0.35
-- Weak leftover notes must match `librosa.pyin` within 50 cents
+- Weak leftover notes must match `librosa.pyin` within 50 cents (drum-aligned notes need a higher velocity to skip that check)
 - Weak notes that sit on a drum onset are dropped; strong on-beat guitar stays
 
 Output is a list of note events: start time, end time, MIDI pitch, velocity.
@@ -242,6 +243,7 @@ src/pipeline/separate.py Demucs 6-stem split and backing mix
 src/pipeline/transcribe.py Basic Pitch + sensitivity presets
 src/pipeline/confirm.py    pyin check on weak notes
 src/pipeline/drum_reject.py drop weak drum-aligned ghosts
+src/pipeline/refine.py     bass-bleed reject + charter thinning
 src/pipeline/tempo.py    BPM
 src/pipeline/stem_clean.py post-Demucs cleanup + drums subtract
 src/pipeline/fretmap.py  string-aware 5-lane map + difficulty thinning
@@ -300,7 +302,7 @@ Test audio used in this repo is listed in `tests/fixtures/CLIPS.md` with attribu
 
 Proven in this repo on short **public-domain / Creative Commons** clips: the pipeline writes real OGGs and a chart with notes on all four difficulties.
 
-Quantitative regression numbers (onset F-measure on synthetic licks, bleed proxy, Expert density) live in [`tests/eval/BASELINE.md`](tests/eval/BASELINE.md). Re-run with `python -m tests.eval.run_baseline`.
+Quantitative regression numbers (onset F-measure on synthetic licks, bleed proxy, Expert density, and per-mode Strict/Balanced/Sensitive comparisons) live in [`tests/eval/BASELINE.md`](tests/eval/BASELINE.md). Post-filter scores use the **full shipped chain** (velocity filter → pyin confirm → drum reject → Expert prune). Re-run with `python -m tests.eval.run_baseline`.
 
 Not proven, and not claimed:
 
@@ -314,8 +316,10 @@ If a chart feels wrong, the usual causes are isolation bleed, Basic Pitch errors
 Mitigations in this build:
 
 - post-Demucs guitar stem cleanup and drums STFT soft-subtract
-- Auto / Strict / Balanced / Sensitive transcription
-- pyin confirm on weak notes; drum-onset reject on low-velocity ghosts
+- Auto / Strict / Balanced / Sensitive transcription (mode-scoped Basic Pitch + confirm/reject aggressiveness)
+- pyin confirm on weak notes; drum-aligned mid-velocity ghosts require pyin unless very strong
+- bass-onset reject for low MIDI bleed into the guitar stem
+- charter thinning (drop tiny notes, merge same-pitch overlaps, drop quieter octave doubles)
 - string-aware 5-lane fretting with position continuity
 - Expert 32nd-note density floor before Hard/Medium/Easy thinning
 

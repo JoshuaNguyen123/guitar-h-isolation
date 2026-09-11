@@ -1,13 +1,13 @@
 {
   "clip_id": "electric_lick",
   "source": "tests/fixtures/electric_lick.mp3",
-  "curation": "Basic Pitch draft (onset 0.5 / frame 0.3) thinned to duration>=70ms, velocity>=0.38, guitar MIDI 40-88, merged same-pitch overlaps.",
+  "curation": "Basic Pitch Balanced draft (onset 0.58 / frame 0.38) after charter thinning: duration>=70ms, merge same-pitch overlaps, drop quieter octave doubles.",
   "notes": [
     {
-      "start_s": 0.1741,
-      "end_s": 0.3483,
+      "start_s": 0.1858,
+      "end_s": 0.3367,
       "midi_pitch": 61,
-      "velocity": 0.631
+      "velocity": 0.6727
     },
     {
       "start_s": 0.3367,
@@ -16,94 +16,64 @@
       "velocity": 0.6471
     },
     {
-      "start_s": 0.5224,
-      "end_s": 0.6618,
-      "midi_pitch": 66,
-      "velocity": 0.4726
+      "start_s": 0.7546,
+      "end_s": 1.0101,
+      "midi_pitch": 64,
+      "velocity": 0.39
     },
     {
       "start_s": 0.7663,
-      "end_s": 0.9288,
+      "end_s": 0.9056,
       "midi_pitch": 69,
-      "velocity": 0.4883
+      "velocity": 0.5152
     },
     {
       "start_s": 0.894,
-      "end_s": 1.4745,
-      "midi_pitch": 45,
-      "velocity": 0.5343
-    },
-    {
-      "start_s": 1.3351,
-      "end_s": 1.4861,
-      "midi_pitch": 69,
-      "velocity": 0.4455
-    },
-    {
-      "start_s": 1.4745,
       "end_s": 2.0214,
       "midi_pitch": 45,
       "velocity": 0.5654
     },
     {
       "start_s": 1.7531,
-      "end_s": 1.904,
+      "end_s": 1.9866,
       "midi_pitch": 64,
-      "velocity": 0.3803
-    },
-    {
-      "start_s": 1.8924,
-      "end_s": 2.0214,
-      "midi_pitch": 69,
-      "velocity": 0.4772
-    },
-    {
-      "start_s": 1.904,
-      "end_s": 2.0679,
-      "midi_pitch": 64,
-      "velocity": 0.403
+      "velocity": 0.4126
     },
     {
       "start_s": 2.0214,
-      "end_s": 2.3813,
+      "end_s": 2.3697,
       "midi_pitch": 45,
-      "velocity": 0.6188
+      "velocity": 0.6113
     },
     {
       "start_s": 2.4045,
-      "end_s": 2.5555,
+      "end_s": 2.5439,
       "midi_pitch": 48,
-      "velocity": 0.4831
+      "velocity": 0.4964
     },
     {
-      "start_s": 2.7645,
-      "end_s": 2.9038,
-      "midi_pitch": 45,
-      "velocity": 0.4667
-    },
-    {
-      "start_s": 2.9386,
-      "end_s": 3.0779,
+      "start_s": 2.8457,
+      "end_s": 3.0315,
       "midi_pitch": 64,
-      "velocity": 0.3893
+      "velocity": 0.3601
     },
     {
       "start_s": 3.0663,
-      "end_s": 3.2985,
+      "end_s": 3.2869,
       "midi_pitch": 61,
-      "velocity": 0.6515
+      "velocity": 0.668
     },
     {
       "start_s": 3.3566,
-      "end_s": 3.5075,
+      "end_s": 3.4959,
       "midi_pitch": 57,
-      "velocity": 0.6519
+      "velocity": 0.6779
     },
     {
       "start_s": 3.612,
-      "end_s": 5.2387,
+      "end_s": 5.2271,
       "midi_pitch": 57,
-      "velocity": 0.9143
+      "velocity": 0.8978
     }
   ]
 }

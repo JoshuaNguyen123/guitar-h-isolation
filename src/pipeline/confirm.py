@@ -9,7 +9,9 @@ import numpy as np
 from src.pipeline.types import NoteEvent
 
 WEAK_VELOCITY = 0.55
+DRUM_ALIGNED_CONFIRM_VELOCITY = 0.70
 CENTS_TOLERANCE = 50.0
+ALIGN_S = 0.04
 FMIN_HZ = 82.0
 FMAX_HZ = 1318.5
 
@@ -44,7 +46,6 @@ def _median_midi_near(times: np.ndarray, f0: np.ndarray, start_s: float, end_s: 
     hi = max(start_s + 0.06, min(end_s, start_s + 0.12))
     mask = (times >= lo) & (times <= hi) & np.isfinite(f0) & (f0 > 0)
     if not np.any(mask):
-        # widen slightly around onset
         mask = (np.abs(times - start_s) <= 0.08) & np.isfinite(f0) & (f0 > 0)
     if not np.any(mask):
         return None
@@ -56,15 +57,27 @@ def confirm_with_pyin(
     guitar_wav: Path,
     *,
     weak_velocity: float = WEAK_VELOCITY,
+    drum_aligned_confirm_velocity: float = DRUM_ALIGNED_CONFIRM_VELOCITY,
+    drum_onsets: np.ndarray | None = None,
+    align_s: float = ALIGN_S,
     cents_tolerance: float = CENTS_TOLERANCE,
 ) -> list[NoteEvent]:
-    """Keep strong notes; require pyin pitch agreement for weaker ones."""
+    """Keep strong notes; require pyin pitch agreement for weaker ones.
+
+    Drum-aligned notes use a higher skip bar so mid-velocity bleed ghosts must
+    still match pyin unless they are clearly strong.
+    """
     if not notes or not Path(guitar_wav).is_file():
         return notes
     times, f0 = _pyin_track(Path(guitar_wav))
+    onsets = np.asarray(drum_onsets, dtype=np.float64) if drum_onsets is not None else None
     kept: list[NoteEvent] = []
     for note in notes:
-        if note.velocity >= weak_velocity:
+        aligned = False
+        if onsets is not None and onsets.size > 0:
+            aligned = bool(np.any(np.abs(onsets - note.start_s) <= align_s))
+        skip_bar = drum_aligned_confirm_velocity if aligned else weak_velocity
+        if note.velocity >= skip_bar:
             kept.append(note)
             continue
         median_midi = _median_midi_near(times, f0, note.start_s, note.end_s)

@@ -38,11 +38,16 @@ def reject_drum_aligned(
     *,
     align_s: float = ALIGN_S,
     strong_velocity: float = STRONG_VELOCITY,
+    drum_onsets: np.ndarray | None = None,
 ) -> list[NoteEvent]:
     """Remove low-confidence notes that sit on drum onsets; keep strong pitched hits."""
     if not notes or drums_wav is None or not Path(drums_wav).is_file():
         return notes
-    onsets = detect_drum_onsets(Path(drums_wav))
+    onsets = (
+        np.asarray(drum_onsets, dtype=np.float64)
+        if drum_onsets is not None
+        else detect_drum_onsets(Path(drums_wav))
+    )
     if onsets.size == 0:
         return notes
     kept: list[NoteEvent] = []

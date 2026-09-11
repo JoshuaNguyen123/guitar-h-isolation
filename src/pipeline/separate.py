@@ -20,6 +20,7 @@ class SeparationResult:
     backing_wav: Path
     sample_rate: int
     drums_wav: Path | None = None
+    bass_wav: Path | None = None
 
 
 def _import_separate():
@@ -52,6 +53,9 @@ def isolate_guitar(input_path: Path, work_dir: Path) -> SeparationResult:
     drums = None
     if "drums" in stems:
         drums = np.asarray(stems["drums"], dtype=np.float32)
+    bass = None
+    if "bass" in stems:
+        bass = np.asarray(stems["bass"], dtype=np.float32)
     backing = None
     for name in BACKING_STEMS:
         if name not in stems:
@@ -69,11 +73,15 @@ def isolate_guitar(input_path: Path, work_dir: Path) -> SeparationResult:
     peak = max(float(np.max(np.abs(guitar))), float(np.max(np.abs(backing))), 1e-6)
     if drums is not None:
         peak = max(peak, float(np.max(np.abs(drums))))
+    if bass is not None:
+        peak = max(peak, float(np.max(np.abs(bass))))
     if peak > 1.0:
         guitar = guitar / peak
         backing = backing / peak
         if drums is not None:
             drums = drums / peak
+        if bass is not None:
+            bass = bass / peak
 
     guitar_wav = work_dir / "guitar.wav"
     backing_wav = work_dir / "backing.wav"
@@ -83,9 +91,14 @@ def isolate_guitar(input_path: Path, work_dir: Path) -> SeparationResult:
     if drums is not None:
         drums_wav = work_dir / "drums.wav"
         sf.write(str(drums_wav), drums.T, sample_rate)
+    bass_wav = None
+    if bass is not None:
+        bass_wav = work_dir / "bass.wav"
+        sf.write(str(bass_wav), bass.T, sample_rate)
     return SeparationResult(
         guitar_wav=guitar_wav,
         backing_wav=backing_wav,
         sample_rate=sample_rate,
         drums_wav=drums_wav,
+        bass_wav=bass_wav,
     )

@@ -2,15 +2,22 @@
 
 from __future__ import annotations
 
+from pathlib import Path
+
 import numpy as np
 
 import soundfile as sf
 
 from src.pipeline.confirm import confirm_with_pyin
-from src.pipeline.drum_reject import reject_drum_aligned
+from src.pipeline.drum_reject import detect_drum_onsets, reject_drum_aligned
 from src.pipeline.fretmap import map_difficulties, notes_to_expert, prune_expert_density
 from src.pipeline.stem_clean import bleed_proxy_score, clean_guitar_stem, subtract_drum_bleed
-from src.pipeline.transcribe import choose_sensitivity, filter_note_events
+from src.pipeline.transcribe import (
+    SENSITIVITY_PRESETS,
+    choose_sensitivity,
+    filter_note_events,
+    resolve_preset,
+)
 from src.pipeline.types import RESOLUTION, ChartNote, NoteEvent, TempoMap
 from tests.eval.metrics import score_density, score_transcription
 from tests.eval.synthesize import (
@@ -213,6 +220,162 @@ def test_sensitive_keeps_more_than_strict():
         (1.0, 1.3, 55, 0.30),
         (1.6, 1.9, 57, 0.28),
     ]
-    strict = filter_note_events(raw, min_velocity=0.42)
-    sensitive = filter_note_events(raw, min_velocity=0.25)
+    strict = filter_note_events(raw, min_velocity=SENSITIVITY_PRESETS["strict"].min_velocity)
+    sensitive = filter_note_events(
+        raw, min_velocity=SENSITIVITY_PRESETS["sensitive"].min_velocity
+    )
     assert len(sensitive) > len(strict)
+
+
+def _bleed_injection_raw(truth: list[NoteEvent], *, mode_gap: bool = False):
+    noisy = list(truth)
+    for beat in (0.0, 0.5, 1.0, 1.5, 2.0, 2.5, 3.0):
+        noisy.append(NoteEvent(beat, beat + 0.08, 48, 0.22))
+        noisy.append(NoteEvent(beat + 0.02, beat + 0.10, 55, 0.55))
+        if mode_gap:
+            noisy.append(NoteEvent(beat + 0.01, beat + 0.09, 50, 0.71))
+    return [(n.start_s, n.end_s, n.midi_pitch, n.velocity) for n in noisy]
+
+
+def _full_chain(notes: list[NoteEvent], mode: str) -> list[NoteEvent]:
+    write_eval_fixtures()
+    params = resolve_preset(mode)
+    drums = EVAL_DIR / "drums_only.wav"
+    guitar = EVAL_DIR / "clean_melody.wav"
+    onsets = detect_drum_onsets(drums)
+    confirmed = confirm_with_pyin(
+        notes,
+        guitar,
+        weak_velocity=params.weak_velocity,
+        drum_aligned_confirm_velocity=params.drum_aligned_confirm_velocity,
+        drum_onsets=onsets,
+    )
+    rejected = reject_drum_aligned(
+        confirmed,
+        drums,
+        strong_velocity=params.drum_reject_strong_velocity,
+        drum_onsets=onsets,
+    )
+    from src.pipeline.refine import thin_charter_notes
+
+    return thin_charter_notes(rejected, min_duration_s=params.min_charter_duration_s)
+
+
+def test_full_chain_drops_mid_velocity_drum_ghosts():
+    """Mid-velocity on-beat ghosts survive velocity filter but not Balanced full chain."""
+    truth = ground_truth_events()
+    raw = _bleed_injection_raw(truth)
+    filtered = filter_note_events(raw)
+    assert any(abs(n.velocity - 0.55) < 1e-9 for n in filtered)
+    full = _full_chain(filtered, "balanced")
+    scores = score_transcription(truth, full)
+    assert scores.f_measure >= 0.80
+    assert scores.recall >= 0.99
+    mid_ghosts = [
+        n for n in full if n.midi_pitch == 55 and abs(n.velocity - 0.55) < 1e-9
+    ]
+    assert not mid_ghosts
+
+
+def test_full_chain_keeps_strong_on_beat_and_offbeat_weak_confirmed():
+    write_eval_fixtures()
+    drums = EVAL_DIR / "drums_only.wav"
+    # Pure tone at MIDI 64 so pyin can confirm a weak off-beat note.
+    sr = 22050
+    freq = 329.6276
+    t = np.arange(int(sr * 1.2), dtype=np.float32) / sr
+    tone = (0.35 * np.sin(2 * np.pi * freq * t)).astype(np.float32)
+    guitar = EVAL_DIR / "clean_melody.wav"
+    # Use tone wav via writing next to fixtures is heavy; reuse confirm unit pattern:
+    # strong on-beat survives reject; weak wrong on-beat drops; weak matching off-beat kept.
+    notes = [
+        NoteEvent(0.0, 0.2, 52, 0.90),
+        NoteEvent(0.5, 0.6, 48, 0.55),
+        NoteEvent(0.25, 0.45, 64, 0.40),
+    ]
+    onsets = detect_drum_onsets(drums)
+    # Confirm against an E4 tone for the off-beat weak note.
+    import tempfile
+
+    with tempfile.TemporaryDirectory() as tmp:
+        wav = Path(tmp) / "e4.wav"
+        sf.write(str(wav), tone, sr)
+        confirmed = confirm_with_pyin(
+            notes,
+            wav,
+            weak_velocity=0.55,
+            drum_aligned_confirm_velocity=0.70,
+            drum_onsets=onsets,
+        )
+        kept = reject_drum_aligned(
+            confirmed, drums, strong_velocity=0.62, drum_onsets=onsets
+        )
+    pitches = {(round(n.start_s, 2), n.midi_pitch) for n in kept}
+    assert (0.0, 52) in pitches
+    assert (0.5, 48) not in pitches
+    assert (0.25, 64) in pitches
+
+
+def test_mode_note_count_ordering_on_bleed_injection():
+    truth = ground_truth_events()
+    raw = _bleed_injection_raw(truth, mode_gap=True)
+    counts = {}
+    for mode in ("strict", "balanced", "sensitive"):
+        params = resolve_preset(mode)
+        filtered = filter_note_events(raw, min_velocity=params.min_velocity)
+        full = _full_chain(filtered, mode)
+        counts[mode] = len(full)
+    assert counts["strict"] <= counts["balanced"] <= counts["sensitive"]
+
+
+def test_strict_precision_beats_balanced_on_bleed_injection():
+    truth = ground_truth_events()
+    raw = _bleed_injection_raw(truth, mode_gap=True)
+    scores = {}
+    for mode in ("strict", "balanced"):
+        params = resolve_preset(mode)
+        filtered = filter_note_events(raw, min_velocity=params.min_velocity)
+        full = _full_chain(filtered, mode)
+        scores[mode] = score_transcription(truth, full)
+    assert scores["strict"].precision >= scores["balanced"].precision + 0.05
+    # Mid-velocity-only chain still meets the Balanced F floor.
+    mid_only = _bleed_injection_raw(truth, mode_gap=False)
+    mid_filtered = filter_note_events(mid_only)
+    mid_full = _full_chain(mid_filtered, "balanced")
+    assert score_transcription(truth, mid_full).f_measure >= 0.80
+
+
+def test_bass_reject_drops_low_bleed_notes():
+    write_eval_fixtures()
+    from src.pipeline.refine import reject_bass_aligned
+
+    notes = [
+        NoteEvent(0.0, 0.2, 40, 0.70),
+        NoteEvent(0.40, 0.75, 52, 0.80),
+        NoteEvent(3.98, 4.1, 40, 0.66),
+    ]
+    kept = reject_bass_aligned(notes, EVAL_DIR / "bass_only.wav")
+    pitches = {n.midi_pitch for n in kept}
+    assert 52 in pitches
+    assert 40 not in pitches
+
+
+def test_thin_charter_notes_merges_and_resolves_conflicts():
+    from src.pipeline.refine import thin_charter_notes
+
+    notes = [
+        NoteEvent(0.40, 0.45, 52, 0.40),  # too short
+        NoteEvent(0.85, 1.20, 55, 0.80),
+        NoteEvent(1.18, 1.50, 55, 0.70),  # merge same pitch
+        NoteEvent(2.00, 2.30, 60, 0.50),
+        NoteEvent(2.02, 2.25, 72, 0.90),  # octave double of 60; louder wins
+        NoteEvent(3.00, 3.30, 64, 0.80),  # real chord mate
+        NoteEvent(3.01, 3.28, 67, 0.75),
+    ]
+    thinned = thin_charter_notes(notes)
+    assert all((n.end_s - n.start_s) >= 0.07 for n in thinned)
+    assert len([n for n in thinned if n.midi_pitch == 55]) == 1
+    assert any(n.midi_pitch == 72 for n in thinned)
+    assert not any(n.midi_pitch == 60 for n in thinned)
+    assert {n.midi_pitch for n in thinned if abs(n.start_s - 3.0) < 0.05} >= {64, 67}
+

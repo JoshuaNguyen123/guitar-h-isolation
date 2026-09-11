@@ -33,5 +33,7 @@ Hand-curated (thinned Basic Pitch draft) MIDI labels:
 | `labels/acoustic_chords.json` | Solo acoustic chords |
 | `labels/acoustic_shuffle.json` | Guitar plus bass mix |
 
+Labels are **Balanced** Basic Pitch drafts after the same charter thinning the pipeline uses (duration/merge/octave-double cleanup). They lock that path for regression; they are not independent human transcriptions.
+
 `band_mix.wav` is a synthetic distorted lick plus drums and bass with the same 7-note guitar ground truth.
 
