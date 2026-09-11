@@ -10,6 +10,7 @@ from tkinter import filedialog, messagebox
 import customtkinter as ctk
 
 from src.pipeline.run import run_pipeline
+from src.pipeline.song_folder import is_song_folder, load_song_folder
 from src.pipeline.util import default_output_dir, parse_filename_metadata
 
 AUDIO_TYPES = [
@@ -215,16 +216,25 @@ class App(ctk.CTk):
 
         actions = ctk.CTkFrame(body, fg_color="transparent")
         actions.pack(fill="x", padx=18, pady=(0, 18))
+        self.open_song_btn = ctk.CTkButton(
+            actions,
+            text="Open song folder",
+            height=36,
+            fg_color="#3a3428",
+            hover_color="#4a4334",
+            command=self._browse_song_folder,
+        )
+        self.open_song_btn.pack(side="left")
         self.open_btn = ctk.CTkButton(
             actions,
-            text="Open folder",
+            text="Open in Explorer",
             height=36,
             fg_color="#3a3428",
             hover_color="#4a4334",
             state="disabled",
             command=self._open_folder,
         )
-        self.open_btn.pack(side="left")
+        self.open_btn.pack(side="left", padx=(10, 0))
         self.copy_btn = ctk.CTkButton(
             actions,
             text="Copy path",
@@ -267,6 +277,43 @@ class App(ctk.CTk):
             return
         self._user_set_output = True
         self.output_var.set(path)
+
+    def _browse_song_folder(self) -> None:
+        """Open a Clone Hero / Guitar H Isolation song folder from any app version."""
+        if self._busy:
+            return
+        path = filedialog.askdirectory(title="Open existing song folder")
+        if not path:
+            return
+        folder = Path(path)
+        try:
+            info = load_song_folder(folder)
+        except Exception as exc:  # noqa: BLE001 — show to user
+            messagebox.showerror(
+                "Open song folder",
+                f"Could not open that folder as a Clone Hero song.\n\n{exc}",
+            )
+            return
+        self._apply_song_folder(info)
+
+    def _apply_song_folder(self, info) -> None:
+        self._output_path = info.path
+        self._user_set_output = True
+        self.output_var.set(str(info.path))
+        self.name_var.set(info.meta.name)
+        self.artist_var.set(info.meta.artist)
+        self.open_btn.configure(state="normal")
+        self.copy_btn.configure(state="normal")
+        self.wait_banner.configure(
+            text="Opened an existing song folder. Clone Hero can still play it."
+        )
+        self.stage_var.set(
+            f"Loaded  ·  Expert {info.note_counts['expert']} notes  ·  "
+            f"{info.tempo.bpm:g} BPM"
+        )
+        self.progress.set(1)
+        for line in info.summary_lines():
+            self._log(line)
 
     def _on_name_change(self, *_args) -> None:
         if self._user_set_output:

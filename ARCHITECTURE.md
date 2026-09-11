@@ -216,7 +216,7 @@ FFmpeg encodes the two WAVs to Vorbis OGG (`-q:a 5`). Then it writes `song.ini` 
 
 ## User interface
 
-`src/app/ui.py` is a dark CustomTkinter window. It has a **Note sensitivity** control: Auto, Strict, Balanced, Sensitive. Auto is the default.
+`src/app/ui.py` is a dark CustomTkinter window. It has a **Note sensitivity** control: Auto, Strict, Balanced, Sensitive. Auto is the default. **Open song folder** loads an existing Clone Hero / Guitar H Isolation output (any prior app version) and shows name, BPM, and note counts without regenerating.
 
 While Generate runs:
 
@@ -244,6 +244,7 @@ src/pipeline/transcribe.py Basic Pitch + sensitivity presets
 src/pipeline/confirm.py    pyin check on weak notes
 src/pipeline/drum_reject.py drop weak drum-aligned ghosts
 src/pipeline/refine.py     bass-bleed reject + charter thinning
+src/pipeline/song_folder.py open/view existing Clone Hero song folders
 src/pipeline/tempo.py    BPM
 src/pipeline/stem_clean.py post-Demucs cleanup + drums subtract
 src/pipeline/fretmap.py  string-aware 5-lane map + difficulty thinning
