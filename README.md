@@ -74,7 +74,9 @@ If the window never opens, double-click `install.bat`, wait until it says **Inst
    - Chart (builds the colored track)
    - Package (saves the folder)
 
-8. When it says **Done**, click **Open folder**.
+8. When it says **Done**, click **Open in Explorer**.
+
+To look at a song folder this app (or an older version) already made, click **Open song folder**, pick that folder, and the app shows the name, BPM, and note counts.
 
 You should see four files:
 
