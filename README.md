@@ -55,9 +55,9 @@ If the window never opens, double-click `install.bat`, wait until it says **Inst
 3. Check **Song name** and **Artist**. Change them if they look wrong.
 4. Leave **Note sensitivity** on **Auto** unless a chart feels wrong.
 
-   - **Auto** picks Strict on bleed-heavy stems, Sensitive on clean high-crest stems, otherwise Balanced
+   - **Auto** picks Strict on bleed-heavy stems, Sensitive on very clean stems, otherwise Balanced
    - **Strict** highest precision (use this if Expert tracks the drums)
-   - **Balanced** middle setting (default when Auto is unsure)
+   - **Balanced** stock Basic Pitch (0.5 / 0.3) plus the evidence score
    - **Sensitive** highest recall on quiet or clean guitar
 
 5. Leave **Output folder** alone unless you know Clone Hero is in portable mode.
@@ -110,7 +110,7 @@ If the song does not show up, open `badsongs.txt` in your Clone Hero folder. Tha
 ## What to expect
 
 - Songs with a clear guitar part work best.
-- Busy songs, heavy distortion, or many guitars at once will miss notes or add extras. The app cleans the guitar stem, subtracts drum bleed, drops weak on-beat ghosts, and confirms unsure notes with a second pitch check. Use **Strict** if Expert still feels too dense.
+- Busy songs, heavy distortion, or many guitars at once will miss notes or add extras. The app transcribes the raw guitar stem, then keeps notes that still look like guitar (velocity + sustain) and only penalizes drum/bass bleed when a note does not ring. Use **Strict** if Expert still tracks the drums.
 - This version only makes a guitar chart. It does not chart drums, bass, or vocals.
 - You can clean up the chart later in Moonscraper if you want to share it.
 - Accuracy regression numbers: [tests/eval/BASELINE.md](tests/eval/BASELINE.md).
@@ -124,8 +124,8 @@ Short version:
 
 1. FFmpeg turns your file into a WAV.
 2. Demucs (`htdemucs_6s`) splits the mix into six stems. The first run downloads that model from Hugging Face (that is the slow “chunk” download). Later songs reuse the cached file.
-3. The guitar stem is cleaned, then drum bleed is subtracted from it. `song.ogg` is the band **without** guitar. `guitar.ogg` is the isolated guitar. Clone Hero plays both so the guitar is not doubled.
-4. Basic Pitch guesses notes from the guitar stem. Weak extras that sit on the beat or fail a second pitch check are dropped. That is pitch detection, not real guitar tab.
+3. `song.ogg` is the band **without** guitar. `guitar.ogg` is the raw isolated guitar. Clone Hero plays both so the guitar is not doubled.
+4. Basic Pitch guesses notes from that raw stem. Each candidate gets one evidence score. Drum hits are not treated as proof the note is fake. That is pitch detection, not real guitar tab.
 5. Notes map onto five Clone Hero lanes from standard-tuning fingerings, then thin for Hard, Medium, and Easy. Expert also has a 32nd-note density floor.
 6. Tempo is one BPM number for the whole song.
 
@@ -140,13 +140,20 @@ Fast checks (no song processing):
 ```powershell
 .\.venv\Scripts\Activate.ps1
 pip install -r requirements-dev.txt
-python -m pytest tests/test_fretmap.py tests/test_chart_writer.py tests/eval/test_eval_unit.py -q
+python -m pytest tests/test_fretmap.py tests/test_chart_writer.py tests/eval/test_eval_unit.py tests/eval/test_guitarset_unit.py -q
 ```
 
 Accuracy baselines (writes `tests/eval/BASELINE.md`; Basic Pitch section needs the ONNX model):
 
 ```powershell
 python -m tests.eval.run_baseline
+```
+
+Independent GuitarSet scores vs the pre-`bc00cd4` 0.5/0.3 reference (slow, not in default CI):
+
+```powershell
+python -m tests.eval.run_guitarset --download-only
+python -m tests.eval.run_guitarset --all-modes --limit 6
 ```
 
 Full run on one public guitar clip (slow):

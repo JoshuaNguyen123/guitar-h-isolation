@@ -5,7 +5,7 @@
 `test_fretmap.py`, `test_chart_writer.py`, and `tests/eval/test_eval_unit.py` do not download Demucs. The eval unit tests do need `numpy`, `scipy`, `soundfile`, `mir-eval`, and `librosa`.
 
 ```powershell
-python -m pytest tests/test_fretmap.py tests/test_chart_writer.py tests/eval/test_eval_unit.py -q
+python -m pytest tests/test_fretmap.py tests/test_chart_writer.py tests/eval/test_eval_unit.py tests/eval/test_guitarset_unit.py -q
 ```
 
 ## Accuracy baselines
@@ -14,9 +14,22 @@ python -m pytest tests/test_fretmap.py tests/test_chart_writer.py tests/eval/tes
 python -m tests.eval.run_baseline
 ```
 
-Writes `tests/eval/BASELINE.md` and `tests/eval/baseline.json`. Synthetic fixtures are under `tests/fixtures/eval/`. Labeled CC clips are `tests/fixtures/eval/labels/*.json` (thinned Basic Pitch drafts of the public fixtures).
+Writes `tests/eval/BASELINE.md` and `tests/eval/baseline.json`. Synthetic fixtures are under `tests/fixtures/eval/`. Labeled CC clips are `tests/fixtures/eval/labels/*.json` (Basic Pitch drafts of the public fixtures; smoke only).
 
-The harness scores the **full shipped post-filter chain** (velocity -> pyin -> drum/bass reject -> charter thin -> Expert) and publishes a **Strict / Balanced / Sensitive** comparison matrix. Mode contracts: Strict favors precision on bleed; Sensitive keeps more notes; Balanced is the middle; Auto picks from stem bleed/crest. CC clip labels match Balanced+thin (regression lock, not human GT).
+The harness scores the **full shipped chain** (evidence score → tempo-relative thin → Expert) against a pre-`bc00cd4` reference (Basic Pitch 0.5 / 0.3, no filters).
+
+Independent real-audio eval (GuitarSet, not in default CI):
+
+```powershell
+python -m tests.eval.run_guitarset --download-only
+python -m tests.eval.run_guitarset
+```
+
+A/B a local stem against pre-bc00cd4 (0.5 / 0.3, no filters):
+
+```powershell
+python -m tests.eval.ab_compare path\to\guitar.wav --drums path\to\drums.wav
+```
 
 ## End-to-end
 

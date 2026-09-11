@@ -5,74 +5,41 @@ from pathlib import Path
 
 import numpy as np
 
-from src.pipeline.types import NoteEvent
+from src.pipeline.types import NoteEvent, TranscriptionResult
 
 # Typical guitar range: E2–E6
 MIN_GUITAR_HZ = 82.0
 MAX_GUITAR_HZ = 1318.5
 MIN_NOTE_DURATION_S = 0.04
 
+
 @dataclass(frozen=True)
 class SensitivityParams:
-    """Basic Pitch + post-filter aggressiveness for one named mode."""
+    """Basic Pitch thresholds and the evidence-score keep bar for one mode."""
 
     name: str
     onset_threshold: float
     frame_threshold: float
-    min_velocity: float
-    # Off-grid notes at/above this skip pyin confirm.
-    weak_velocity: float
-    # Drum-aligned notes at/above this skip pyin (stricter than weak_velocity).
-    drum_aligned_confirm_velocity: float
-    # Drum-aligned notes at/above this skip drum-onset reject.
-    drum_reject_strong_velocity: float
-    # Charter thinning minimum duration (Sensitive keeps shorter notes).
-    min_charter_duration_s: float
+    keep_threshold: float
 
+
+# Plan Phase 1: Balanced is stock Basic Pitch. Modes only move thresholds.
 SENSITIVITY_PRESETS: dict[str, SensitivityParams] = {
-    "strict": SensitivityParams(
-        name="strict",
-        onset_threshold=0.66,
-        frame_threshold=0.44,
-        min_velocity=0.45,
-        weak_velocity=0.48,
-        # Higher bars = harder to skip confirm/reject on drum hits (fewer bleed ghosts).
-        drum_aligned_confirm_velocity=0.78,
-        drum_reject_strong_velocity=0.72,
-        min_charter_duration_s=0.07,
-    ),
-    "balanced": SensitivityParams(
-        name="balanced",
-        onset_threshold=0.58,
-        frame_threshold=0.38,
-        min_velocity=0.35,
-        weak_velocity=0.55,
-        drum_aligned_confirm_velocity=0.70,
-        drum_reject_strong_velocity=0.62,
-        min_charter_duration_s=0.07,
-    ),
-    "sensitive": SensitivityParams(
-        name="sensitive",
-        onset_threshold=0.48,
-        frame_threshold=0.28,
-        min_velocity=0.22,
-        weak_velocity=0.62,
-        # Lower bars = keep more quiet / on-beat notes (more recall, more notes).
-        drum_aligned_confirm_velocity=0.58,
-        drum_reject_strong_velocity=0.52,
-        min_charter_duration_s=0.05,
-    ),
+    "strict": SensitivityParams("strict", 0.55, 0.35, 0.20),
+    "balanced": SensitivityParams("balanced", 0.50, 0.30, 0.10),
+    "sensitive": SensitivityParams("sensitive", 0.40, 0.25, 0.04),
 }
 
-# Back-compat names = balanced preset (see tests/eval/BASELINE.md).
 ONSET_THRESHOLD = SENSITIVITY_PRESETS["balanced"].onset_threshold
 FRAME_THRESHOLD = SENSITIVITY_PRESETS["balanced"].frame_threshold
-MIN_NOTE_VELOCITY = SENSITIVITY_PRESETS["balanced"].min_velocity
+KEEP_THRESHOLD = SENSITIVITY_PRESETS["balanced"].keep_threshold
+# Older tests used this name for the Balanced velocity floor. Velocity is no
+# longer a hard gate; keep the alias so docs/baselines can still print a number.
+MIN_NOTE_VELOCITY = 0.0
 
 BLEED_STRICT = 0.10
 BLEED_SENSITIVE = 0.035
-CREST_STRICT = 3.5
-CREST_SENSITIVE = 7.5
+
 
 def resolve_preset(name: str | SensitivityParams | None) -> SensitivityParams:
     if isinstance(name, SensitivityParams):
@@ -82,37 +49,31 @@ def resolve_preset(name: str | SensitivityParams | None) -> SensitivityParams:
         key = "balanced"
     return SENSITIVITY_PRESETS.get(key, SENSITIVITY_PRESETS["balanced"])
 
+
 def choose_sensitivity(
     mode: str,
     guitar: np.ndarray | None = None,
     backing: np.ndarray | None = None,
     sample_rate: int = 44100,
 ) -> str:
-    """Return strict / balanced / sensitive. Manual modes win; auto uses bleed + crest."""
+    """Manual modes win. Auto is Balanced unless isolation bleed is extreme."""
     key = (mode or "auto").strip().lower()
     if key in SENSITIVITY_PRESETS:
         return key
     if guitar is None or backing is None or sample_rate <= 0:
         return "balanced"
-    from src.pipeline.stem_clean import _to_channels_first, bleed_proxy_score
+    from src.pipeline.stem_clean import bleed_proxy_score
 
     bleed = bleed_proxy_score(guitar, backing, sample_rate)
-    mono = np.mean(_to_channels_first(guitar), axis=0)
-    peak = float(np.max(np.abs(mono))) + 1e-8
-    rms = float(np.sqrt(np.mean(mono**2))) + 1e-8
-    crest = peak / rms
-    if bleed >= BLEED_STRICT or crest < CREST_STRICT:
+    if bleed >= BLEED_STRICT:
         return "strict"
-    if bleed <= BLEED_SENSITIVE and crest >= CREST_SENSITIVE:
+    if bleed <= BLEED_SENSITIVE:
         return "sensitive"
     return "balanced"
 
-def filter_note_events(
-    raw_events,
-    *,
-    min_velocity: float = MIN_NOTE_VELOCITY,
-) -> list[NoteEvent]:
-    """Convert Basic Pitch tuples into NoteEvents with bleed-oriented filtering."""
+
+def filter_note_events(raw_events, *, min_velocity: float = 0.0) -> list[NoteEvent]:
+    """Convert Basic Pitch tuples. Velocity is not a hard keep/drop gate."""
     notes: list[NoteEvent] = []
     for event in raw_events:
         start_s = float(event[0])
@@ -136,18 +97,17 @@ def filter_note_events(
     notes.sort(key=lambda n: (n.start_s, n.midi_pitch))
     return notes
 
+
 def transcribe_guitar(
     guitar_wav: Path,
     sensitivity: str | SensitivityParams = "balanced",
-) -> list[NoteEvent]:
+) -> TranscriptionResult:
     from basic_pitch import FilenameSuffix, build_icassp_2022_model_path
     from basic_pitch.inference import predict
 
     params = resolve_preset(sensitivity)
-    # Prefer ONNX even if TensorFlow is installed. TF is the default on
-    # Python 3.11 and makes Transcribe look hung on long songs.
     model_path = build_icassp_2022_model_path(FilenameSuffix.onnx)
-    _model_output, _midi, raw_events = predict(
+    model_output, _midi, raw_events = predict(
         str(guitar_wav),
         model_or_model_path=model_path,
         onset_threshold=params.onset_threshold,
@@ -155,10 +115,16 @@ def transcribe_guitar(
         minimum_frequency=MIN_GUITAR_HZ,
         maximum_frequency=MAX_GUITAR_HZ,
     )
-    notes = filter_note_events(raw_events, min_velocity=params.min_velocity)
+    notes = filter_note_events(raw_events)
     if not notes:
         raise RuntimeError(
             "No guitar notes were detected. Try a clearer guitar recording, "
             "or a mix where the guitar is more present."
         )
-    return notes
+    return TranscriptionResult(notes=notes, model_output=model_output)
+
+
+def transcribe_pre_bc00cd4(guitar_wav: Path) -> list[NoteEvent]:
+    """Pre-regression reference: stock 0.5/0.3, no evidence score, no thinning."""
+    result = transcribe_guitar(guitar_wav, sensitivity="balanced")
+    return result.notes

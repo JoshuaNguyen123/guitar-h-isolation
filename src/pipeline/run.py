@@ -8,15 +8,13 @@ from pathlib import Path
 import numpy as np
 import soundfile as sf
 
-from src.pipeline.confirm import confirm_with_pyin
-from src.pipeline.drum_reject import detect_drum_onsets, reject_drum_aligned
+from src.pipeline.filters import apply_evidence_filters
 from src.pipeline.fretmap import map_difficulties
 from src.pipeline.hf import configure_fast_hf, model_is_cached
 from src.pipeline.package import package_song
-from src.pipeline.refine import reject_bass_aligned, thin_charter_notes
 from src.pipeline.separate import isolate_guitar
 from src.pipeline.tempo import estimate_tempo
-from src.pipeline.transcribe import choose_sensitivity, resolve_preset, transcribe_guitar
+from src.pipeline.transcribe import choose_sensitivity, transcribe_guitar
 from src.pipeline.types import SongMeta
 from src.pipeline.util import ensure_ffmpeg, sanitize_folder_name
 
@@ -70,30 +68,19 @@ def run_pipeline(
         )
 
         report("Transcribe", 0.62)
-        params = resolve_preset(preset)
-        notes = transcribe_guitar(separation.guitar_wav, sensitivity=params)
-        drums_path = separation.drums_wav or separation.backing_wav
-        drum_onsets = (
-            detect_drum_onsets(Path(drums_path)) if drums_path is not None else None
-        )
-        notes = confirm_with_pyin(
-            notes,
-            separation.guitar_wav,
-            weak_velocity=params.weak_velocity,
-            drum_aligned_confirm_velocity=params.drum_aligned_confirm_velocity,
-            drum_onsets=drum_onsets,
-        )
-        notes = reject_drum_aligned(
-            notes,
-            drums_path,
-            strong_velocity=params.drum_reject_strong_velocity,
-            drum_onsets=drum_onsets,
-        )
-        notes = reject_bass_aligned(notes, separation.bass_wav)
-        notes = thin_charter_notes(notes, min_duration_s=params.min_charter_duration_s)
+        transcription = transcribe_guitar(separation.guitar_wav, sensitivity=preset)
 
         report("Detecting tempo", 0.80)
         tempo = estimate_tempo(separation.backing_wav)
+        notes = apply_evidence_filters(
+            transcription.notes,
+            separation.guitar_wav,
+            drums_wav=separation.drums_wav or separation.backing_wav,
+            bass_wav=separation.bass_wav,
+            model_output=transcription.model_output,
+            mode=preset,
+            bpm=tempo.bpm,
+        )
 
         report("Chart", 0.86)
         charts = map_difficulties(notes, tempo)

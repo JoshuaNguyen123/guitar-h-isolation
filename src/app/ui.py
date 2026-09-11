@@ -160,7 +160,7 @@ class App(ctk.CTk):
         ).pack(fill="x", padx=18, pady=(4, 8))
         ctk.CTkLabel(
             body,
-            text="Auto: Strict on bleed, Sensitive on clean. Strict = highest precision. Sensitive = more quiet notes.",
+            text="Auto: Strict on heavy bleed, otherwise Balanced. Strict = fewer extras. Sensitive = more quiet notes. Balanced = stock Basic Pitch plus an evidence score.",
             font=ctk.CTkFont(family="Segoe UI", size=12),
             text_color="#8f8574",
             wraplength=620,

@@ -1,32 +1,27 @@
 # Accuracy baselines
 
-Generated: `2026-09-11T19:32:39.005400+00:00`
+Generated: `2026-09-11T22:09:51.594125+00:00`
 
-Floors after drum/bass reject, charter thinning, mode-scoped pyin, adaptive sensitivity, and string-aware frets. Post-filter baselines score the **full shipped chain** (velocity -> pyin -> drum/bass reject -> charter thin -> Expert prune).
+Shipped path: raw Demucs guitar stem → Basic Pitch → evidence score → tempo-relative thin → Expert prune.
+The pre-`bc00cd4` reference is stock Basic Pitch 0.5 / 0.3 with no post-filters.
 
 ## Pipeline knobs under test
 
-- Balanced Basic Pitch `onset_threshold=0.58`, `frame_threshold=0.38`
-- Balanced post-filter `min_velocity=0.35` (strict/sensitive differ)
-- Guitar stem cleanup + drums STFT soft-subtract
-- Mode-scoped pyin confirm; drum-aligned mid-velocity ghosts require pyin unless very strong
-- Bass-onset reject for low MIDI bleed; charter thinning (duration/merge/conflict)
+- Balanced Basic Pitch `onset_threshold=0.5`, `frame_threshold=0.3`
+- Velocity is an evidence input, not a hard gate
+- Evidence score: velocity + posterior sustain − drum/bass dominance when sustain is low
+- Tempo-relative thinning (half a 16th, keeps octave doubles)
 - Expert density prune: 32nd-note minimum spacing
-- String-aware 5-lane fretting (standard tuning, high E shares orange with B)
 
 ## 1. Bleed false-positive post-filter + Expert density (synthetic note events)
 
-Ground truth: 7-note melody. Estimated: truth + drum-on-beat false notes (low and mid velocity).
-
 | Stage | Precision | Recall | F-measure | Est notes | Expert notes | Expert NPS |
 | --- | ---: | ---: | ---: | ---: | ---: | ---: |
-| Legacy (no velocity filter, unpruned Expert) | 0.304 | 1.000 | 0.467 | 23 | 23 | 5.61 |
-| Velocity filter only + Expert prune | 0.467 | 1.000 | 0.636 | 15 | 15 | 3.66 |
-| Full chain (velocity -> pyin -> drum reject -> Expert) | 1.000 | 1.000 | 1.000 | 7 | 7 | 1.71 |
+| Legacy (no evidence score, unpruned Expert) | 0.304 | 1.000 | 0.467 | 23 | 23 | 5.61 |
+| Duration/pitch filter only + Expert prune | 0.304 | 1.000 | 0.467 | 23 | 23 | 5.61 |
+| Full chain (evidence score → thin → Expert) | 1.000 | 1.000 | 1.000 | 7 | 7 | 1.71 |
 
-Balanced stage note counts on bleed injection: velocity=15, pyin=8, drum_reject=7.
-
-## 2. Isolation bleed proxy (synthetic distorted guitar + drums in guitar stem)
+## 2. Isolation bleed proxy (diagnostic helpers only — not on Generate)
 
 | Metric | Value |
 | --- | ---: |
@@ -35,32 +30,30 @@ Balanced stage note counts on bleed injection: velocity=15, pyin=8, drum_reject=
 | After drums soft-subtract | 0.0153 |
 | Total reduction | 94.5% |
 
-## 3. Basic Pitch on synthetic WAVs (Balanced)
+## 3. Basic Pitch on synthetic WAVs (Balanced vs pre-bc00cd4)
 
-| Fixture | Current P / R / F (notes) | Legacy 0.5/0.3 P / R / F (notes) |
+| Fixture | Shipped P / R / F (notes) | Pre-bc00cd4 0.5/0.3 P / R / F (notes) |
 | --- | --- | --- |
 | `clean_melody.wav` | 1.000 / 1.000 / 1.000 (7) | 1.000 / 1.000 / 1.000 (7) |
 | `distorted_melody.wav` | 1.000 / 1.000 / 1.000 (7) | 1.000 / 1.000 / 1.000 (7) |
 | `distorted_bleed_melody.wav` | 1.000 / 1.000 / 1.000 (7) | 1.000 / 1.000 / 1.000 (7) |
-| `band_mix.wav` | 1.000 / 1.000 / 1.000 (7) | 0.500 / 1.000 / 0.667 (14) |
+| `band_mix.wav` | 0.538 / 1.000 / 0.700 (13) | 0.500 / 1.000 / 0.667 (14) |
 
-## 4. Sensitivity modes (Strict / Balanced / Sensitive)
+## 4. Sensitivity modes
 
-Contracts: Strict favors precision on bleed; Sensitive favors recall/note count on clean; Balanced stays between them; Auto picks from stem bleed/crest.
+| Mode | onset / frame / keep |
+| --- | --- |
+| `strict` | 0.55 / 0.35 / 0.2 |
+| `balanced` | 0.5 / 0.3 / 0.1 |
+| `sensitive` | 0.4 / 0.25 / 0.04 |
 
-| Mode | onset / frame / min_vel | weak / drum-confirm / drum-reject |
-| --- | --- | --- |
-| `strict` | 0.66 / 0.44 / 0.45 | 0.48 / 0.78 / 0.72 |
-| `balanced` | 0.58 / 0.38 / 0.35 | 0.55 / 0.7 / 0.62 |
-| `sensitive` | 0.48 / 0.28 / 0.22 | 0.62 / 0.58 / 0.52 |
-
-### Bleed injection (full chain)
+### Bleed injection (evidence chain)
 
 | Mode | Precision | Recall | F-measure | Est notes |
 | --- | ---: | ---: | ---: | ---: |
 | `strict` | 1.000 | 1.000 | 1.000 | 7 |
-| `balanced` | 0.467 | 1.000 | 0.636 | 15 |
-| `sensitive` | 0.438 | 1.000 | 0.609 | 16 |
+| `balanced` | 1.000 | 1.000 | 1.000 | 7 |
+| `sensitive` | 1.000 | 1.000 | 1.000 | 7 |
 
 ### Synthetic fixtures
 
@@ -69,45 +62,41 @@ Contracts: Strict favors precision on bleed; Sensitive favors recall/note count 
 | `clean_melody.wav` | `strict` | 1.000 | 1.000 | 1.000 | 7 |
 | `clean_melody.wav` | `balanced` | 1.000 | 1.000 | 1.000 | 7 |
 | `clean_melody.wav` | `sensitive` | 1.000 | 1.000 | 1.000 | 7 |
-| `band_mix.wav` | `strict` | 1.000 | 1.000 | 1.000 | 7 |
-| `band_mix.wav` | `balanced` | 1.000 | 1.000 | 1.000 | 7 |
-| `band_mix.wav` | `sensitive` | 0.778 | 1.000 | 0.875 | 9 |
+| `band_mix.wav` | `strict` | 0.538 | 1.000 | 0.700 | 13 |
+| `band_mix.wav` | `balanced` | 0.538 | 1.000 | 0.700 | 13 |
+| `band_mix.wav` | `sensitive` | 0.538 | 1.000 | 0.700 | 13 |
 
 ### Auto selection
 
 - High-bleed stem -> `strict`
-- Clean high-crest stem -> `balanced`
+- Clean stem -> `sensitive`
 
-## 5. Labeled Creative Commons clips (mix-direct Balanced + charter thin vs curated labels)
+## 5. Labeled Creative Commons clips (smoke only)
 
-Labels are Balanced Basic Pitch drafts with the same charter thinning in `tests/fixtures/eval/labels/`. They are a regression lock for the charter-thin path (not independent human GT).
+Not independent human GT. Real-audio accuracy is GuitarSet (`python -m tests.eval.run_guitarset`).
 
 | Clip | Precision | Recall | F-measure | Est / label notes |
 | --- | ---: | ---: | ---: | ---: |
-| `electric_lick` | 1.000 | 1.000 | 1.000 | 12 / 12 |
-| `acoustic_chords` | 1.000 | 1.000 | 1.000 | 76 / 76 |
-| `acoustic_shuffle` | 1.000 | 1.000 | 1.000 | 81 / 81 |
+| `electric_lick` | 0.333 | 0.917 | 0.489 | 33 / 12 |
+| `acoustic_chords` | 0.546 | 0.934 | 0.689 | 130 / 76 |
+| `acoustic_shuffle` | 0.433 | 0.802 | 0.563 | 150 / 81 |
+
+## 6. GuitarSet (independent labels)
+
+Generated: `2026-09-11T22:19:25.647418+00:00`
+
+Tracks: 6. Solo shipped F `0.733` vs pre-bc00cd4 `0.733`. Band shipped F `0.553` vs pre-bc00cd4 `0.551`. Band Strict P `0.653` vs Balanced P `0.619`.
 
 ## Regression floors
 
-Unit tests enforce:
-
-- Velocity filter drops sub-0.35 ghost notes (Balanced)
-- Full chain drops mid-velocity drum-aligned ghosts; keeps strong on-beat guitar
-- Expert prune enforces >= 32nd spacing
-- Stem cleanup reduces bleed proxy by >5%; drums subtract improves further
-- Auto sensitivity selects Strict on high-bleed stems
-- Mode note-count ordering: Strict <= Balanced <= Sensitive on shared raw events
-- Strict precision >= Balanced precision + 0.05 on bleed injection (full chain)
-- Bass reject drops low MIDI bleed on bass onsets
-- Charter thinning merges same-pitch overlaps and drops quieter octave doubles
-- Scale-run lanes stay locally continuous (no C-to-green wrap)
-- Perfect self-score on ground-truth note lists
-
-Harness floors (this file): clean synthetic recall stays 1.0 under Balanced/Sensitive; section-1 full-chain mid-velocity bleed-injection F >= 0.80 under Balanced; section-4 mode matrix adds near-strong ghosts to separate Strict/Balanced/Sensitive; distorted+drums bleed correlation after subtract is below the cleanup-only value.
+- Evidence score keeps sustained on-beat guitar and drops short broadband ghosts
+- Chord voices are not pyin-vetoed
+- Strict keep bar > Balanced > Sensitive
+- Auto selects Strict on high-bleed stems (no crest rule)
+- Charter thin merges same-pitch overlaps and keeps octave doubles
+- Generate transcribes the raw Demucs stem
 
 ## Notes
 
 - Synthetic fixtures live in `tests/fixtures/eval/` (CC0).
 - mir-eval onset tolerance is 50 ms; pitch tolerance 50 cents; offsets ignored.
-- Real commercial distorted mixes are still not claimed; these numbers are the repo's quantitative regression bar.

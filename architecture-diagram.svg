@@ -2,8 +2,8 @@
   <title id="title">Guitar H Isolation architecture</title>
   <desc id="desc">
     Desktop UI starts a worker thread. FFmpeg decodes the file. Demucs splits six stems
-    using a Hugging Face ONNX model. The guitar stem is cleaned and drum-subtracted.
-    Guitar goes to Basic Pitch, pyin confirm, and drum-onset reject. Backing goes to
+    using a Hugging Face ONNX model. The raw guitar stem goes to Basic Pitch.
+    Each note gets one evidence score (sustain vs drum/bass dominance). Backing goes to
     tempo detection. Notes map to five lanes from standard tuning, then the app writes
     a Clone Hero folder: song.ogg, guitar.ogg, song.ini, notes.chart.
   </desc>
@@ -87,7 +87,7 @@
 
   <rect class="box" x="120" y="488" width="280" height="72" rx="10"/>
   <text class="h" x="260" y="518" text-anchor="middle">guitar.wav</text>
-  <text class="p" x="260" y="540" text-anchor="middle">cleaned � drums subtracted</text>
+  <text class="p" x="260" y="540" text-anchor="middle">raw isolated guitar</text>
 
   <rect class="box" x="620" y="488" width="360" height="72" rx="10"/>
   <text class="h" x="800" y="518" text-anchor="middle">backing.wav</text>
@@ -101,8 +101,8 @@
   <text class="band-label" x="44" y="630">LAYER 3  �  ANALYZE</text>
 
   <rect class="box" x="120" y="652" width="280" height="96" rx="10"/>
-  <text class="h" x="260" y="688" text-anchor="middle">Basic Pitch + pyin</text>
-  <text class="p" x="260" y="710" text-anchor="middle">notes · drop weak drum ghosts</text>
+  <text class="h" x="260" y="688" text-anchor="middle">Basic Pitch + evidence</text>
+  <text class="p" x="260" y="710" text-anchor="middle">keep if score meets the mode bar</text>
   <text class="tiny" x="260" y="730" text-anchor="middle">not guitar tab · E2-E6 window</text>
 
   <rect class="box" x="660" y="652" width="280" height="96" rx="10"/>

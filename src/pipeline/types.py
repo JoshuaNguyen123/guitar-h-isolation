@@ -15,6 +15,23 @@ class NoteEvent:
     velocity: float = 1.0
 
 
+@dataclass(frozen=True)
+class ScoredNote:
+    note: NoteEvent
+    velocity: float
+    sustain: float
+    drum_dominance: float
+    bass_dominance: float
+    pyin_vote: float
+    score: float
+
+
+@dataclass
+class TranscriptionResult:
+    notes: list[NoteEvent]
+    model_output: dict | None = None
+
+
 @dataclass
 class ChartNote:
     tick: int

@@ -8,7 +8,6 @@ import soundfile as sf
 
 from src.pipeline.audio import decode_to_wav
 from src.pipeline.hf import configure_fast_hf, preferred_precision
-from src.pipeline.stem_clean import clean_guitar_stem, subtract_drum_bleed
 
 
 BACKING_STEMS = ("drums", "bass", "vocals", "piano", "other")
@@ -66,10 +65,6 @@ def isolate_guitar(input_path: Path, work_dir: Path) -> SeparationResult:
         raise RuntimeError("Demucs did not return backing stems to rebuild the mix.")
 
     sample_rate = int(sf.info(str(mix_wav)).samplerate)
-    guitar = clean_guitar_stem(guitar, sample_rate)
-    if drums is not None:
-        guitar = subtract_drum_bleed(guitar, drums, sample_rate)
-
     peak = max(float(np.max(np.abs(guitar))), float(np.max(np.abs(backing))), 1e-6)
     if drums is not None:
         peak = max(peak, float(np.max(np.abs(drums))))

@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-09-11T19:32:39.005400+00:00",
+  "generated_at": "2026-09-11T22:09:51.594125+00:00",
   "postfilter_density": {
     "transcription_legacy_vs_truth": {
       "precision": 0.30434782608695654,
@@ -9,11 +9,11 @@
       "est_notes": 23
     },
     "transcription_filtered_vs_truth": {
-      "precision": 0.4666666666666667,
+      "precision": 0.30434782608695654,
       "recall": 1.0,
-      "f_measure": 0.6363636363636364,
+      "f_measure": 0.4666666666666667,
       "ref_notes": 7,
-      "est_notes": 15
+      "est_notes": 23
     },
     "transcription_full_chain_vs_truth": {
       "precision": 1.0,
@@ -32,10 +32,10 @@
     },
     "density_filter_expert": {
       "duration_s": 4.1,
-      "expert_notes": 15,
-      "hard_notes": 15,
-      "expert_nps": 3.658536585365854,
-      "hard_nps": 3.658536585365854,
+      "expert_notes": 23,
+      "hard_notes": 23,
+      "expert_nps": 5.609756097560976,
+      "hard_nps": 5.609756097560976,
       "expert_unique_ticks": 15
     },
     "density_full_chain_expert": {
@@ -55,15 +55,12 @@
       "expert_unique_ticks": 7
     },
     "legacy_est_notes": 23,
-    "filtered_est_notes": 15,
+    "filtered_est_notes": 23,
     "full_chain_est_notes": 7,
     "truth_notes": 7,
     "stage_counts_balanced": {
-      "after_velocity": 15,
-      "after_pyin": 8,
-      "after_drum_reject": 7,
-      "after_bass_reject": 7,
-      "after_thin": 7
+      "after_raw": 23,
+      "after_evidence": 7
     }
   },
   "bleed_cleanup": {
@@ -72,8 +69,7 @@
     "bleed_mix_after_subtract": 0.015309647239421253,
     "bleed_mix_after": 0.015309647239421253,
     "bleed_reduction_pct": 94.49964324559565,
-    "clean_stem_proxy_before": 0.0010358936983517419,
-    "clean_stem_proxy_after": 0.0008242670797610347
+    "note": "Helpers remain for diagnostics; shipped Generate uses the raw Demucs stem."
   },
   "basic_pitch": {
     "clean_melody.wav": {
@@ -91,9 +87,8 @@
         "est_notes": 7
       },
       "thresholds": {
-        "onset": 0.58,
-        "frame": 0.38,
-        "min_velocity": 0.35
+        "onset": 0.5,
+        "frame": 0.3
       }
     },
     "distorted_melody.wav": {
@@ -111,9 +106,8 @@
         "est_notes": 7
       },
       "thresholds": {
-        "onset": 0.58,
-        "frame": 0.38,
-        "min_velocity": 0.35
+        "onset": 0.5,
+        "frame": 0.3
       }
     },
     "distorted_bleed_melody.wav": {
@@ -131,18 +125,17 @@
         "est_notes": 7
       },
       "thresholds": {
-        "onset": 0.58,
-        "frame": 0.38,
-        "min_velocity": 0.35
+        "onset": 0.5,
+        "frame": 0.3
       }
     },
     "band_mix.wav": {
       "ok": true,
-      "precision": 1.0,
+      "precision": 0.5384615384615384,
       "recall": 1.0,
-      "f_measure": 1.0,
+      "f_measure": 0.7000000000000001,
       "ref_notes": 7,
-      "est_notes": 7,
+      "est_notes": 13,
       "legacy": {
         "precision": 0.5,
         "recall": 1.0,
@@ -151,16 +144,8 @@
         "est_notes": 14
       },
       "thresholds": {
-        "onset": 0.58,
-        "frame": 0.38,
-        "min_velocity": 0.35
-      },
-      "stage_counts": {
-        "after_velocity": 12,
-        "after_pyin": 10,
-        "after_drum_reject": 9,
-        "after_bass_reject": 7,
-        "after_thin": 7
+        "onset": 0.5,
+        "frame": 0.3
       }
     }
   },
@@ -195,27 +180,27 @@
       "band_mix.wav": {
         "strict": {
           "ok": true,
-          "precision": 1.0,
+          "precision": 0.5384615384615384,
           "recall": 1.0,
-          "f_measure": 1.0,
+          "f_measure": 0.7000000000000001,
           "ref_notes": 7,
-          "est_notes": 7
+          "est_notes": 13
         },
         "balanced": {
           "ok": true,
-          "precision": 1.0,
+          "precision": 0.5384615384615384,
           "recall": 1.0,
-          "f_measure": 1.0,
+          "f_measure": 0.7000000000000001,
           "ref_notes": 7,
-          "est_notes": 7
+          "est_notes": 13
         },
         "sensitive": {
           "ok": true,
-          "precision": 0.7777777777777778,
+          "precision": 0.5384615384615384,
           "recall": 1.0,
-          "f_measure": 0.8750000000000001,
+          "f_measure": 0.7000000000000001,
           "ref_notes": 7,
-          "est_notes": 9
+          "est_notes": 13
         }
       }
     },
@@ -228,81 +213,316 @@
         "est_notes": 7
       },
       "balanced": {
-        "precision": 0.4666666666666667,
+        "precision": 1.0,
         "recall": 1.0,
-        "f_measure": 0.6363636363636364,
+        "f_measure": 1.0,
         "ref_notes": 7,
-        "est_notes": 15
+        "est_notes": 7
       },
       "sensitive": {
-        "precision": 0.4375,
+        "precision": 1.0,
         "recall": 1.0,
-        "f_measure": 0.6086956521739131,
+        "f_measure": 1.0,
         "ref_notes": 7,
-        "est_notes": 16
+        "est_notes": 7
       }
     },
     "auto_selection": {
       "bleed_stem": "strict",
-      "clean_stem": "balanced"
+      "clean_stem": "sensitive"
     },
     "presets": {
       "strict": {
-        "onset_threshold": 0.66,
-        "frame_threshold": 0.44,
-        "min_velocity": 0.45,
-        "weak_velocity": 0.48,
-        "drum_aligned_confirm_velocity": 0.78,
-        "drum_reject_strong_velocity": 0.72,
-        "min_charter_duration_s": 0.07
+        "onset_threshold": 0.55,
+        "frame_threshold": 0.35,
+        "keep_threshold": 0.2
       },
       "balanced": {
-        "onset_threshold": 0.58,
-        "frame_threshold": 0.38,
-        "min_velocity": 0.35,
-        "weak_velocity": 0.55,
-        "drum_aligned_confirm_velocity": 0.7,
-        "drum_reject_strong_velocity": 0.62,
-        "min_charter_duration_s": 0.07
+        "onset_threshold": 0.5,
+        "frame_threshold": 0.3,
+        "keep_threshold": 0.1
       },
       "sensitive": {
-        "onset_threshold": 0.48,
-        "frame_threshold": 0.28,
-        "min_velocity": 0.22,
-        "weak_velocity": 0.62,
-        "drum_aligned_confirm_velocity": 0.58,
-        "drum_reject_strong_velocity": 0.52,
-        "min_charter_duration_s": 0.05
+        "onset_threshold": 0.4,
+        "frame_threshold": 0.25,
+        "keep_threshold": 0.04
       }
     }
   },
   "labeled_clips": {
     "electric_lick": {
       "ok": true,
-      "precision": 1.0,
-      "recall": 1.0,
-      "f_measure": 1.0,
+      "precision": 0.3333333333333333,
+      "recall": 0.9166666666666666,
+      "f_measure": 0.4888888888888888,
       "ref_notes": 12,
-      "est_notes": 12,
+      "est_notes": 33,
       "label_notes": 12
     },
     "acoustic_chords": {
       "ok": true,
-      "precision": 1.0,
-      "recall": 1.0,
-      "f_measure": 1.0,
+      "precision": 0.5461538461538461,
+      "recall": 0.9342105263157895,
+      "f_measure": 0.6893203883495146,
       "ref_notes": 76,
-      "est_notes": 76,
+      "est_notes": 130,
       "label_notes": 76
     },
     "acoustic_shuffle": {
       "ok": true,
-      "precision": 1.0,
-      "recall": 1.0,
-      "f_measure": 1.0,
+      "precision": 0.43333333333333335,
+      "recall": 0.8024691358024691,
+      "f_measure": 0.5627705627705628,
       "ref_notes": 81,
-      "est_notes": 81,
+      "est_notes": 150,
       "label_notes": 81
+    }
+  },
+  "guitarset": {
+    "generated_at": "2026-09-11T22:08:57.901304+00:00",
+    "n_tracks": 6,
+    "mean_solo_f_reference": 0.7331734342929233,
+    "mean_solo_f_shipped": 0.7331734342929233,
+    "mean_band_f_reference": 0.5513152294960344,
+    "mean_band_f_shipped": 0.5527205120420853,
+    "mean_band_recall_reference": 0.5151994635424088,
+    "mean_band_recall_shipped": 0.5151994635424088,
+    "mean_band_precision_strict": 0.0,
+    "mean_band_precision_balanced": 0.6189344690772135,
+    "tracks": [
+      {
+        "track_id": "00_Rock1-90-C#_comp",
+        "truth_notes": 665,
+        "solo": {
+          "reference": {
+            "precision": 0.9232456140350878,
+            "recall": 0.6330827067669172,
+            "f_measure": 0.751115075825156,
+            "ref_notes": 665,
+            "est_notes": 456
+          },
+          "balanced": {
+            "precision": 0.9232456140350878,
+            "recall": 0.6330827067669172,
+            "f_measure": 0.751115075825156,
+            "ref_notes": 665,
+            "est_notes": 456
+          },
+          "balanced_notes": 456
+        },
+        "band": {
+          "reference": {
+            "precision": 0.7390029325513197,
+            "recall": 0.37894736842105264,
+            "f_measure": 0.5009940357852882,
+            "ref_notes": 665,
+            "est_notes": 341
+          },
+          "balanced": {
+            "precision": 0.7390029325513197,
+            "recall": 0.37894736842105264,
+            "f_measure": 0.5009940357852882,
+            "ref_notes": 665,
+            "est_notes": 341
+          },
+          "balanced_notes": 341
+        }
+      },
+      {
+        "track_id": "00_Rock1-90-C#_solo",
+        "truth_notes": 178,
+        "solo": {
+          "reference": {
+            "precision": 0.7233009708737864,
+            "recall": 0.8370786516853933,
+            "f_measure": 0.7760416666666666,
+            "ref_notes": 178,
+            "est_notes": 206
+          },
+          "balanced": {
+            "precision": 0.7233009708737864,
+            "recall": 0.8370786516853933,
+            "f_measure": 0.7760416666666666,
+            "ref_notes": 178,
+            "est_notes": 206
+          },
+          "balanced_notes": 206
+        },
+        "band": {
+          "reference": {
+            "precision": 0.4624277456647399,
+            "recall": 0.449438202247191,
+            "f_measure": 0.45584045584045585,
+            "ref_notes": 178,
+            "est_notes": 173
+          },
+          "balanced": {
+            "precision": 0.4678362573099415,
+            "recall": 0.449438202247191,
+            "f_measure": 0.4584527220630372,
+            "ref_notes": 178,
+            "est_notes": 171
+          },
+          "balanced_notes": 171
+        }
+      },
+      {
+        "track_id": "00_Rock2-142-D_comp",
+        "truth_notes": 547,
+        "solo": {
+          "reference": {
+            "precision": 0.8359375,
+            "recall": 0.5868372943327239,
+            "f_measure": 0.6895810955961331,
+            "ref_notes": 547,
+            "est_notes": 384
+          },
+          "balanced": {
+            "precision": 0.8359375,
+            "recall": 0.5868372943327239,
+            "f_measure": 0.6895810955961331,
+            "ref_notes": 547,
+            "est_notes": 384
+          },
+          "balanced_notes": 384
+        },
+        "band": {
+          "reference": {
+            "precision": 0.7222222222222222,
+            "recall": 0.4753199268738574,
+            "f_measure": 0.5733186328555677,
+            "ref_notes": 547,
+            "est_notes": 360
+          },
+          "balanced": {
+            "precision": 0.7222222222222222,
+            "recall": 0.4753199268738574,
+            "f_measure": 0.5733186328555677,
+            "ref_notes": 547,
+            "est_notes": 360
+          },
+          "balanced_notes": 360
+        }
+      },
+      {
+        "track_id": "00_Rock3-148-C_solo",
+        "truth_notes": 146,
+        "solo": {
+          "reference": {
+            "precision": 0.7515151515151515,
+            "recall": 0.8493150684931506,
+            "f_measure": 0.797427652733119,
+            "ref_notes": 146,
+            "est_notes": 165
+          },
+          "balanced": {
+            "precision": 0.7515151515151515,
+            "recall": 0.8493150684931506,
+            "f_measure": 0.797427652733119,
+            "ref_notes": 146,
+            "est_notes": 165
+          },
+          "balanced_notes": 165
+        },
+        "band": {
+          "reference": {
+            "precision": 0.5833333333333334,
+            "recall": 0.6232876712328768,
+            "f_measure": 0.6026490066225165,
+            "ref_notes": 146,
+            "est_notes": 156
+          },
+          "balanced": {
+            "precision": 0.5909090909090909,
+            "recall": 0.6232876712328768,
+            "f_measure": 0.6066666666666667,
+            "ref_notes": 146,
+            "est_notes": 154
+          },
+          "balanced_notes": 154
+        }
+      },
+      {
+        "track_id": "02_Rock1-130-A_comp",
+        "truth_notes": 210,
+        "solo": {
+          "reference": {
+            "precision": 0.6954314720812182,
+            "recall": 0.6523809523809524,
+            "f_measure": 0.6732186732186733,
+            "ref_notes": 210,
+            "est_notes": 197
+          },
+          "balanced": {
+            "precision": 0.6954314720812182,
+            "recall": 0.6523809523809524,
+            "f_measure": 0.6732186732186733,
+            "ref_notes": 210,
+            "est_notes": 197
+          },
+          "balanced_notes": 197
+        },
+        "band": {
+          "reference": {
+            "precision": 0.5630630630630631,
+            "recall": 0.5952380952380952,
+            "f_measure": 0.5787037037037037,
+            "ref_notes": 210,
+            "est_notes": 222
+          },
+          "balanced": {
+            "precision": 0.5630630630630631,
+            "recall": 0.5952380952380952,
+            "f_measure": 0.5787037037037037,
+            "ref_notes": 210,
+            "est_notes": 222
+          },
+          "balanced_notes": 222
+        }
+      },
+      {
+        "track_id": "03_Funk1-114-Ab_comp",
+        "truth_notes": 174,
+        "solo": {
+          "reference": {
+            "precision": 0.7631578947368421,
+            "recall": 0.6666666666666666,
+            "f_measure": 0.7116564417177914,
+            "ref_notes": 174,
+            "est_notes": 152
+          },
+          "balanced": {
+            "precision": 0.7631578947368421,
+            "recall": 0.6666666666666666,
+            "f_measure": 0.7116564417177914,
+            "ref_notes": 174,
+            "est_notes": 152
+          },
+          "balanced_notes": 152
+        },
+        "band": {
+          "reference": {
+            "precision": 0.6265822784810127,
+            "recall": 0.5689655172413793,
+            "f_measure": 0.5963855421686748,
+            "ref_notes": 174,
+            "est_notes": 158
+          },
+          "balanced": {
+            "precision": 0.6305732484076433,
+            "recall": 0.5689655172413793,
+            "f_measure": 0.5981873111782477,
+            "ref_notes": 174,
+            "est_notes": 157
+          },
+          "balanced_notes": 157
+        }
+      }
+    ],
+    "acceptance": {
+      "shipped_band_f_gte_reference": true,
+      "strict_precision_gte_balanced": false,
+      "note": "Shipped Balanced F must meet the pre-bc00cd4 reference (raw 0.5/0.3, no filters) on GuitarSet band mixes."
     }
   }
 }

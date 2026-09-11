@@ -46,18 +46,23 @@ flowchart TB
   subgraph SEP["Layer 2 · Separate · this is the slow part"]
     FFMPEG["FFmpeg decode<br/>stereo 44.1 kHz WAV"] --> DEMUCS["Demucs htdemucs_6s<br/>6 stems in ~7.8 s chunks"]
     HF --> DEMUCS
-    DEMUCS --> CLEAN["Clean + subtract drums"]
-    CLEAN --> GUITAR["guitar.wav<br/>isolated guitar"]
+    DEMUCS --> GUITAR["guitar.wav<br/>raw isolated guitar"]
     DEMUCS --> BACK["backing.wav<br/>drums + bass + vocals + piano + other"]
+    DEMUCS --> DRUMS["drums.wav / bass.wav<br/>evidence inputs"]
   end
 
   subgraph AN["Layer 3 · Analyze"]
-    GUITAR --> BP["Basic Pitch + pyin<br/>note times + MIDI"]
+    GUITAR --> BP["Basic Pitch 0.5 / 0.3"]
+    DRUMS --> EV["Evidence score"]
+    BP --> EV
+    EV --> KEEP["Keep if score ≥ mode bar"]
     BACK --> BPM["librosa beat_track<br/>one BPM for the whole song"]
+    BPM --> KEEP
+    KEEP --> NTHIN["Tempo-relative thin<br/>keep octave doubles"]
   end
 
   subgraph CH["Layer 4 · Chart · heuristic"]
-    BP --> MAP["String-aware 5-lane map<br/>standard tuning · chords cap 3"]
+    NTHIN --> MAP["String-aware 5-lane map<br/>standard tuning · chords cap 3"]
     BPM --> MAP
     MAP --> THIN["Thin difficulties<br/>Expert 32nd · Hard 2 · Medium 2 · Easy 1"]
   end
@@ -127,8 +132,8 @@ Only if the Demucs ONNX file is not already cached. See above.
 
 1. FFmpeg decodes the input to a stereo 44.1 kHz WAV in a temp folder.
 2. `demucs-onnx` runs `htdemucs_6s` and returns six stems: drums, bass, other, vocals, guitar, piano.
-3. **Guitar stem** is band-limited and gated (`stem_clean.py`), then drums are STFT soft-subtracted from it.
-4. **Backing** is the sum of drums + bass + vocals + piano + other. Guitar is left out on purpose. The drums stem is also written for later note rejection.
+3. **Guitar stem** is the raw Demucs guitar output. Cleanup helpers in `stem_clean.py` are diagnostics only; they are not applied before transcription.
+4. **Backing** is the sum of drums + bass + vocals + piano + other. Guitar is left out on purpose. The drums and bass stems are kept for the evidence score.
 5. Peaks are normalized if they clip above 1.0.
 
 Honesty about isolation:
@@ -144,11 +149,11 @@ Spotify **Basic Pitch** (ICASSP 2022 ONNX) listens to the guitar stem only.
 
 - Frequency window: about E2 to E6 (82 Hz to 1318 Hz)
 - MIDI kept: 40 to 88
-- Sensitivity presets: Strict / Balanced / Sensitive (Auto uses bleed + crest on the isolated stem)
-- Each mode sets Basic Pitch onset/frame/min_velocity **and** pyin / drum-reject aggressiveness
-- Balanced defaults: onset 0.58, frame 0.38, drop velocity below 0.35
-- Weak leftover notes must match `librosa.pyin` within 50 cents (drum-aligned notes need a higher velocity to skip that check)
-- Weak notes that sit on a drum onset are dropped; strong on-beat guitar stays
+- Sensitivity presets: Strict / Balanced / Sensitive. Auto is Balanced unless stem bleed is extreme.
+- Balanced is stock Basic Pitch: onset 0.50, frame 0.30. Strict 0.55 / 0.35. Sensitive 0.40 / 0.25.
+- Velocity is an evidence input, not a hard gate.
+- Each note gets one score: velocity + Basic Pitch sustain − drum/bass dominance only when sustain is low. A weak pyin match can add a little; it never vetoes.
+- Modes only move Basic Pitch thresholds and the keep bar.
 
 Output is a list of note events: start time, end time, MIDI pitch, velocity.
 
@@ -241,12 +246,12 @@ src/pipeline/audio.py    FFmpeg decode / OGG encode
 src/pipeline/hf.py       Hugging Face cache and faster downloads
 src/pipeline/separate.py Demucs 6-stem split and backing mix
 src/pipeline/transcribe.py Basic Pitch + sensitivity presets
-src/pipeline/confirm.py    pyin check on weak notes
-src/pipeline/drum_reject.py drop weak drum-aligned ghosts
-src/pipeline/refine.py     bass-bleed reject + charter thinning
+src/pipeline/evidence.py   one score per note (sustain / bleed)
+src/pipeline/filters.py    score → keep → tempo-relative thin
+src/pipeline/refine.py     merge same-pitch overlaps; keep octaves
 src/pipeline/song_folder.py open/view existing Clone Hero song folders
 src/pipeline/tempo.py    BPM
-src/pipeline/stem_clean.py post-Demucs cleanup + drums subtract
+src/pipeline/stem_clean.py bleed-proxy diagnostics (not on Generate)
 src/pipeline/fretmap.py  string-aware 5-lane map + difficulty thinning
 src/pipeline/chart_writer.py text .chart
 src/pipeline/package.py  song folder
@@ -278,7 +283,7 @@ Default output: `Documents\Clone Hero\Songs\<Song Name>`
 | demucs-onnx + htdemucs_6s | 6-stem split including guitar | Hugging Face `StemSplitio/htdemucs-6s-onnx` (Meta Demucs family) |
 | onnxruntime | run the ONNX graphs | pip |
 | Basic Pitch | audio to MIDI-like notes | Spotify model bundled with the `basic-pitch` package |
-| librosa | tempo, pyin confirm, drum onsets | pip |
+| librosa | tempo, optional pyin vote, drum onsets | pip |
 | scipy | guitar-stem band filters | pip |
 | CustomTkinter | window | pip |
 
@@ -303,7 +308,7 @@ Test audio used in this repo is listed in `tests/fixtures/CLIPS.md` with attribu
 
 Proven in this repo on short **public-domain / Creative Commons** clips: the pipeline writes real OGGs and a chart with notes on all four difficulties.
 
-Quantitative regression numbers (onset F-measure on synthetic licks, bleed proxy, Expert density, and per-mode Strict/Balanced/Sensitive comparisons) live in [`tests/eval/BASELINE.md`](tests/eval/BASELINE.md). Post-filter scores use the **full shipped chain** (velocity filter → pyin confirm → drum reject → Expert prune). Re-run with `python -m tests.eval.run_baseline`.
+Quantitative regression numbers live in [`tests/eval/BASELINE.md`](tests/eval/BASELINE.md). Post-filter scores use the **full shipped chain** (evidence score → tempo-relative thin → Expert prune). Re-run with `python -m tests.eval.run_baseline`. Independent real-audio scores vs the pre-`bc00cd4` 0.5/0.3 reference: `python -m tests.eval.run_guitarset`.
 
 Not proven, and not claimed:
 
@@ -316,11 +321,10 @@ If a chart feels wrong, the usual causes are isolation bleed, Basic Pitch errors
 
 Mitigations in this build:
 
-- post-Demucs guitar stem cleanup and drums STFT soft-subtract
-- Auto / Strict / Balanced / Sensitive transcription (mode-scoped Basic Pitch + confirm/reject aggressiveness)
-- pyin confirm on weak notes; drum-aligned mid-velocity ghosts require pyin unless very strong
-- bass-onset reject for low MIDI bleed into the guitar stem
-- charter thinning (drop tiny notes, merge same-pitch overlaps, drop quieter octave doubles)
+- Generate transcribes the raw Demucs guitar stem (cleanup helpers are diagnostics only)
+- Auto / Strict / Balanced / Sensitive (Basic Pitch thresholds + keep bar; no crest rule)
+- one evidence score per note; drum alignment is never a veto
+- tempo-relative thinning that keeps power-chord octaves
 - string-aware 5-lane fretting with position continuity
 - Expert 32nd-note density floor before Hard/Medium/Easy thinning
 

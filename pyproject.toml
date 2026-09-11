@@ -36,4 +36,5 @@ pythonpath = ["."]
 testpaths = ["tests"]
 markers = [
     "e2e: real isolate/transcribe/package run (slow, needs models)",
+    "guitarset: GuitarSet download + transcription (slow, optional cache)",
 ]

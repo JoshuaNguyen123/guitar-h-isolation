@@ -1,4 +1,4 @@
-"""Post-Demucs guitar stem cleanup to reduce drum/other bleed."""
+"""Bleed-proxy diagnostics. Generate transcribes the raw Demucs guitar stem."""
 
 from __future__ import annotations
 

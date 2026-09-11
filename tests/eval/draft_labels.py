@@ -10,7 +10,6 @@ ROOT = Path(__file__).resolve().parents[2]
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
-from src.pipeline.refine import thin_charter_notes
 from src.pipeline.transcribe import filter_note_events, resolve_preset
 from tests.eval.synthesize import FIXTURE_CLIPS, LABEL_DIR
 
@@ -35,14 +34,13 @@ def draft_one(clip_id: str, audio_path: Path) -> dict:
         minimum_frequency=82.0,
         maximum_frequency=1318.5,
     )
-    notes = filter_note_events(raw_events, min_velocity=params.min_velocity)
-    notes = thin_charter_notes(notes, min_duration_s=params.min_charter_duration_s)
+    notes = filter_note_events(raw_events)
     return {
         "clip_id": clip_id,
         "source": str(audio_path.relative_to(ROOT)).replace("\\", "/"),
         "curation": (
-            "Basic Pitch Balanced draft (onset 0.58 / frame 0.38) after charter thinning: "
-            "duration>=70ms, merge same-pitch overlaps, drop quieter octave doubles."
+            "Basic Pitch Balanced draft (onset 0.50 / frame 0.30). "
+            "Smoke fixture only — not independent human ground truth."
         ),
         "notes": [
             {
