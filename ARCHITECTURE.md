@@ -4,6 +4,8 @@ This document explains what the app actually does, what it does not do, and why 
 
 This project is not affiliated with Guitar Hero, Harmonix, or Clone Hero. Charts are machine drafts. They are playable. They are not community-polish charts.
 
+The app is free to download and run. There is no account, subscription, or paid tier. Processing stays on your machine.
+
 Only process audio you have the right to use.
 
 ---
@@ -255,6 +257,7 @@ Default output: `Documents\Clone Hero\Songs\<Song Name>`
 
 ## What this app does not do
 
+- It does not charge money, ask for an account, or unlock features behind a paywall.
 - It does not download songs from the internet.
 - It does not remove copyright, watermarks, or DRM.
 - It does not produce official Guitar Hero or Clone Hero content.

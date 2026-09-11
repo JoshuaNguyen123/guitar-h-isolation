@@ -6,6 +6,8 @@ You pick an MP3, click Generate, and the app makes a folder Clone Hero can play.
 
 The chart is a first draft. It is playable, but it will not look as clean as a chart someone made by hand.
 
+This app is **free**. There is no account, no subscription, and no paid tier. You run it on your computer.
+
 This project is not affiliated with Guitar Hero, Harmonix, or Clone Hero.
 
 Only use songs you are allowed to use.

@@ -81,7 +81,7 @@ class App(ctk.CTk):
         ).pack(anchor="w")
         ctk.CTkLabel(
             header,
-            text="Turn an MP3 into a Clone Hero guitar chart.",
+            text="Turn an MP3 into a Clone Hero guitar chart. Free. Runs on this computer.",
             font=ctk.CTkFont(family="Segoe UI", size=14),
             text_color="#c4b8a0",
         ).pack(anchor="w", pady=(4, 0))
